@@ -1,0 +1,392 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title>（一）Docker从入门到精通—HelloWorld</title>
+    <url>/2020/03/19/docker-hello-world/</url>
+    <content><![CDATA[<h2 id="安装虚拟机"><a href="#安装虚拟机" class="headerlink" title="安装虚拟机"></a>安装虚拟机</h2><p>首先在windows机器上安装VirtualBox虚拟机，然后在虚拟机中安装CentOS操作系统，最后在CentOS中安装Docker。CentOS开启ssh服务后，通过mac远程连接CentOS，后续操作全部在mac机器上进行（非mac机器连接方式类似），本文结尾将演示Docker的HelloWorld例子。</p>
+<h2 id="安装VirtualBox"><a href="#安装VirtualBox" class="headerlink" title="安装VirtualBox"></a>安装VirtualBox</h2><p>常见虚拟机软件包括VirtualBox和vmware，建议使用免费开源的VirtualBox，下载地址：<a href="https://www.virtualbox.org" target="_blank" rel="noopener">https://www.virtualbox.org</a>, 没有特别要求，下载最新版本即可，安装过程请参考网上教程。</p>
+<h2 id="安装CentOS"><a href="#安装CentOS" class="headerlink" title="安装CentOS"></a>安装CentOS</h2><p>采用Linux系统学习Docker，建议使用CentOS操作系统<br>下载地址：<a href="https://www.centos.org/download/" target="_blank" rel="noopener">https://www.centos.org/download/</a>,  选择Everything ISO，从镜像链接中下载CentOS-7-x86_64-Everything-1708.iso。<br>由于网络受限，无法通过桥接的方式访问外网，所以网络链接方式选择“网络地址转换（NAT）”，虚拟机和windows主机共享一个IP地址。有条件的情况下，选择“桥接网卡”方式后续会更加方便一些。<br><img src="https://download.beyondspider.com/img/docker-hello-world/8260ea86228f21cd9d058a9ef0b57432.jpg" alt="8260ea86228f21cd9d058a9ef0b57432.jpg"></p>
+<h2 id="修改hostname"><a href="#修改hostname" class="headerlink" title="修改hostname"></a>修改hostname</h2><pre><code>执行命令：</code></pre><p>hostnamectl set-hostname beyondspider<br>其中beyondspider为新的机器名称，根据实际情况修改。一旦修改了hostname，/etc/hostname将被自动更新。但是/etc/hosts不会更新，所以需要手动更新/etc/hosts，最终改完效果如下：<br><img src="https://download.beyondspider.com/img/docker-hello-world/b2b9fe104617b54b5daa27a9c8a684ea.jpg" alt="b2b9fe104617b54b5daa27a9c8a684ea.jpg"></p>
+<h2 id="配置ssh"><a href="#配置ssh" class="headerlink" title="配置ssh"></a>配置ssh</h2><pre><code>CentOS安装完之后默认已经启动了ssh服务, 可以通过如下步骤检查ssh服务是否启动。</code></pre><p>查看端口22是否开放：<br>netstat -tnl<br><img src="https://download.beyondspider.com/img/docker-hello-world/c099cfebad5e6c4b55784c7159f86414.jpg" alt="c099cfebad5e6c4b55784c7159f86414.jpg"></p>
+<h3 id="查看ssh服务是否启动："><a href="#查看ssh服务是否启动：" class="headerlink" title="查看ssh服务是否启动："></a>查看ssh服务是否启动：</h3><p>systemctl status sshd.service<br><img src="https://download.beyondspider.com/img/docker-hello-world/d76c78aa5d20a2438cb3e5aa4b980faf.jpg" alt="d76c78aa5d20a2438cb3e5aa4b980faf.jpg"></p>
+<h3 id="设置虚拟机网卡端口转发"><a href="#设置虚拟机网卡端口转发" class="headerlink" title="设置虚拟机网卡端口转发"></a>设置虚拟机网卡端口转发</h3><p>由于NAT网络，外部无法访问虚拟机，所以设置端口转发来使用ssh服务<br><img src="https://download.beyondspider.com/img/docker-hello-world/e9c2d0e0f53ddb798d1ca0e2981e204f.jpg" alt="e9c2d0e0f53ddb798d1ca0e2981e204f.jpg"></p>
+<h3 id="密码访问"><a href="#密码访问" class="headerlink" title="密码访问"></a>密码访问</h3><p>ssh <a href="mailto:root@xx.xx.xx.xx">root@xx.xx.xx.xx</a><br>    注意：需要根据提示输入密码。</p>
+<h3 id="证书访问"><a href="#证书访问" class="headerlink" title="证书访问"></a>证书访问</h3><p>首先通过ssh-keygen命令生成公钥和私钥，然后用ssh-copy-id命令，自动保存公钥在对方主机的/root/.ssh/authorized_keys 文件中去<br>ssh-copy-id -i ~/.ssh/id_rsa.pub <a href="mailto:root@xx.xx.xx.xx">root@xx.xx.xx.xx</a><br> 注意：需要根据提示输入密码, 下次就可以免密访问了。</p>
+<p>ssh登录成功画面如下：<br><img src="https://download.beyondspider.com/img/docker-hello-world/d7edb00bc85d5bdcaf1050d419fa835c.jpg" alt="d7edb00bc85d5bdcaf1050d419fa835c.jpg"></p>
+<h2 id="配置阿里云yum镜像"><a href="#配置阿里云yum镜像" class="headerlink" title="配置阿里云yum镜像"></a>配置阿里云yum镜像</h2><p>mv /etc/yum.repos.d/CentOS-Base.repo /etc/yum.repos.d/CentOS-Base.repo.backup<br>wget -O /etc/yum.repos.d/CentOS-Base.repo <a href="http://mirrors.aliyun.com/repo/Centos-7.repo" target="_blank" rel="noopener">http://mirrors.aliyun.com/repo/Centos-7.repo</a><br>yum clean all<br>rm -rf /var/cache/yum<br>yum makecache</p>
+<h2 id="安装Docker并启动"><a href="#安装Docker并启动" class="headerlink" title="安装Docker并启动"></a>安装Docker并启动</h2><p>yum -y install docker<br>service docker start<br>检查docker版本<br>docker –version<br><img src="https://download.beyondspider.com/img/docker-hello-world/a4314795ef391638e025e5bb55cc4123.jpg" alt="a4314795ef391638e025e5bb55cc4123.jpg"></p>
+<h2 id="修改docker加速镜像"><a href="#修改docker加速镜像" class="headerlink" title="修改docker加速镜像"></a>修改docker加速镜像</h2><pre><code>访问阿里docker网页，登录后台获取专属加速地址, https://dev.aliyun.com</code></pre><p><img src="https://download.beyondspider.com/img/docker-hello-world/df39dbaf09550852962adad79495b200.jpg" alt="df39dbaf09550852962adad79495b200.jpg"></p>
+<pre><code>修改后/etc/docker/daemon.json内容如下</code></pre><p><img src="https://download.beyondspider.com/img/docker-hello-world/2ecfedb19aa767b3b8c77c4a98083386.jpg" alt="2ecfedb19aa767b3b8c77c4a98083386.jpg"></p>
+<pre><code>修改完记得重启docker</code></pre><p>sudo systemctl daemon-reload<br>sudo systemctl restart docker</p>
+<h2 id="修改docker代理（可选）"><a href="#修改docker代理（可选）" class="headerlink" title="修改docker代理（可选）"></a>修改docker代理（可选）</h2><pre><code>如果网络不好，需要设置代理
+创建文件/etc/systemd/system/docker.service.d/http-proxy.conf，参考如下内容修改：</code></pre><p>[Service]<br>Environment=”HTTP_PROXY=<a href="http://proxy.xx.xx.xx:8080&quot;">http://proxy.xx.xx.xx:8080&quot;</a></p>
+<p>修改后效果如下：<br><img src="https://download.beyondspider.com/img/docker-hello-world/3da4ceae821a9e259ce10bfa018e626d.jpg" alt="3da4ceae821a9e259ce10bfa018e626d.jpg"></p>
+<p>  修改完记得重启docker<br>sudo systemctl daemon-reload<br>sudo systemctl restart docker</p>
+<h2 id="运行hello-world"><a href="#运行hello-world" class="headerlink" title="运行hello-world"></a>运行hello-world</h2><p>docker run hello-world</p>
+<h2 id="成功"><a href="#成功" class="headerlink" title="成功"></a>成功</h2><p>看人如下页面表示成功，<br><img src="https://download.beyondspider.com/img/docker-hello-world/786da34298447f7bb1d94046e8d4b59e.jpg" alt="786da34298447f7bb1d94046e8d4b59e.jpg"></p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>到此，docker 在 CentOS 系统的安装完成。下回将讲解Docker镜像相关知识，欢迎交流。</p>
+]]></content>
+      <categories>
+        <category>docker</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>（二）Docker从入门到精通—容器镜像仓库</title>
+    <url>/2020/03/20/docker-image/</url>
+    <content><![CDATA[<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>上一篇文章介绍了docker安装，并演示了HelloWorld。今天主要介绍一下镜像管理相关知识，分为三大部分：镜像、容器、仓库，首先看一下关系图：</p>
+<p><img src="https://download.beyondspider.com/img/docker-image/1.jpg" alt="1"></p>
+<h2 id="仓库（Repository）"><a href="#仓库（Repository）" class="headerlink" title="仓库（Repository）"></a>仓库（Repository）</h2><p>仓库是存放镜像的地方，每个仓库集中存放某一类镜像，比如存放Ubuntu镜像的仓库叫做Ubuntu仓库，可能包括14.04、16.04、latest等版本，通过tag区分。这些仓库可以存放在公开服务器Registry上面，可以搭建私有服务器。官方的服务器为Docker Hub, 网址为：<a href="https://hub.docker.com。" target="_blank" rel="noopener">https://hub.docker.com。</a> 如果网络访问不方便，可以采用国内镜像网站。<br>自己可以注册账号，上传自定义镜像到服务器，共享给他人下载。</p>
+<h2 id="镜像（Image）"><a href="#镜像（Image）" class="headerlink" title="镜像（Image）"></a>镜像（Image）</h2><p>Docker镜像类似于虚拟机镜像, 可以理解成包含了文件系统的只读模板。可以从压缩文件导入或从仓库下载，我们可以在本地已有镜像的基础上自定义镜像。<br>以下载Ubuntu镜像为例：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker pull ubuntu</span><br></pre></td></tr></table></figure>
+
+<p><img src="https://download.beyondspider.com/img/docker-image/2.jpg" alt="2"></p>
+<p>通过docker images命令查询已经下载的镜像，我们发现之前的Hello-world和ubuntu都查询成功了。<br>默认如果不指定tag，下载的就是最新的latest, 相当于docker pull ubuntu:latest,  如果下载指定版本，比如14.04，命令为docker pull ubuntu:14.04<br><img src="https://download.beyondspider.com/img/docker-image/3.jpg" alt="3"></p>
+<p>再次查询一下，发现有两个ubuntu镜像，但是TAG不一样，并且他们的IMAGE ID也不一样，是两个不同的镜像。<br>如果我们不需要ubuntu:14.04镜像了，可以通过docker rmi f216cfb59484命令进行删除:<br><img src="https://download.beyondspider.com/img/docker-image/4.jpg" alt="4"></p>
+<p>删除后，查询一下，发现ubuntu:14.04镜像不见了，说明删除成功。<br>现在运行一下镜像ubuntu:latest，命令为：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker run -ti ubuntu /bin/bash</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/docker-image/5.jpg" alt="5"></p>
+<p>运行成功后，自动创建了一个容器并运行，可以输入简单的Linux命令，比如ls。可以添加一个新文件，然后创建一个新的镜像。<br><img src="https://download.beyondspider.com/img/docker-image/6.jpg" alt="6"></p>
+<p>首先创建一个文件：然后退出:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">touch test.txt</span><br><span class="line"><span class="built_in">exit</span></span><br></pre></td></tr></table></figure>
+<p>记录容器ID为4040e711b2a3之后，执行命令</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker commit -m <span class="string">"Add test.txt"</span> -a <span class="string">"beyondspider"</span> 4040e711b2a3 ubuntu:<span class="built_in">test</span></span><br></pre></td></tr></table></figure>
+<p>在ubuntu:latest镜像基础上创建了一个新的镜像ubuntu:test。<br>可以把刚才创建的镜像导出到本地压缩文件，或者上传到Docker Hub，这里就不做演示了。</p>
+<h2 id="容器（Container）"><a href="#容器（Container）" class="headerlink" title="容器（Container）"></a>容器（Container）</h2><p>Docker容器类似于一个轻量级的沙箱，可以看作简易版的Linux系统环境，容器是从镜像创建的实例，会在镜像的最上层创建一个可写层，镜像是只读的，不会改变。<br>一个镜像可以创建多个容器，不同容器是相互隔离互不可见的。可以对容器进行启动、停止、删除等操作。<br>刚才的命令</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker run -ti ubuntu /bin/bash</span><br></pre></td></tr></table></figure>
+<p>其实包括两个动作，首先执行了命令创建容器:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker create -ti ubuntu /bin/bash</span><br></pre></td></tr></table></figure>
+<p>然后执行了命令运行容器:</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker start</span><br></pre></td></tr></table></figure>
+
+<p>首先docker ps -a查询一下刚才创建的容器。<br><img src="https://download.beyondspider.com/img/docker-image/7.jpg" alt="7"></p>
+<p>继续运行一下：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker start -i 4040e711b2a3</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/docker-image/8.jpg" alt="8"></p>
+<p>我们发现和刚才的效果一样的，并且test.txt文件还在，说明容器是可写的。继续创建并运行一个新的容器：<br><img src="https://download.beyondspider.com/img/docker-image/9.jpg" alt="9"></p>
+<p>我们发现新的容器8f4c252c6b0c没有test.txt文件，说明不同的容器直接是隔离的。<br>如果我们不需要8f4c252c6b0c容器了，可以通过docker rm 8f4c252c6b0c命令进行删除:<br><img src="https://download.beyondspider.com/img/docker-image/10.jpg" alt="10"></p>
+<p>删除后，查询一下，发现8f4c252c6b0c容器不见了，说明删除成功。</p>
+<h2 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h2><p>通常我们可以从Docker Hub下载一个镜像，然后根据镜像创建容器并运行，在容器中自定义功能后，创建新的镜像，然后上传新的镜像到服务器。下次继续分享制作镜像的详情内容，欢迎交流。</p>
+]]></content>
+      <categories>
+        <category>docker</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>全自动采集酒店数据并导出到EXCEL</title>
+    <url>/2020/03/20/hotelspider/</url>
+    <content><![CDATA[<h2 id="客户需求"><a href="#客户需求" class="headerlink" title="客户需求"></a>客户需求</h2><p>酒店后台管理系统记录了合作酒店信息，一共300多页，每页10条数据，主要包括合作酒店的地区、价格、风险指数等信息，现在需要把这些信息整理成EXCEL，如果手工复制工作量大，而且容易出错，所以客户提出用爬虫采集数据并导出到EXCEL。</p>
+<h2 id="爬虫模拟"><a href="#爬虫模拟" class="headerlink" title="爬虫模拟"></a>爬虫模拟</h2><h3 id="登陆"><a href="#登陆" class="headerlink" title="登陆"></a>登陆</h3><p><a href="http://checkhrs.zzzdex.com/piston/login" target="_blank" rel="noopener">http://checkhrs.zzzdex.com/piston/login</a></p>
+<p><img src="https://download.beyondspider.com/img/hotel/login.png" alt="login"></p>
+<h3 id="列表页面"><a href="#列表页面" class="headerlink" title="列表页面"></a>列表页面</h3><p><a href="http://checkhrs.zzzdex.com/piston/hotel?page=1" target="_blank" rel="noopener">http://checkhrs.zzzdex.com/piston/hotel?page=1</a><br><img src="https://download.beyondspider.com/img/hotel/list.png" alt="list"></p>
+<h3 id="详情页面"><a href="#详情页面" class="headerlink" title="详情页面"></a>详情页面</h3><p><a href="http://checkhrs.zzzdex.com/piston/hotel/xxxx/edit" target="_blank" rel="noopener">http://checkhrs.zzzdex.com/piston/hotel/xxxx/edit</a><br><img src="https://download.beyondspider.com/img/hotel/detail.png" alt="detail"></p>
+<h2 id="详细设计"><a href="#详细设计" class="headerlink" title="详细设计"></a>详细设计</h2><h3 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h3><p>首先通过用户名密码登陆，然后打开第一页，接着打开每条记录的详情页，然后采集数据。接下来遍历第二页直到最后一页。</p>
+<h3 id="Scrapy"><a href="#Scrapy" class="headerlink" title="Scrapy"></a>Scrapy</h3><p>采用Python的Scrapy框架</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">pip install scrapy</span><br></pre></td></tr></table></figure>
+<h3 id="核心源码"><a href="#核心源码" class="headerlink" title="核心源码"></a>核心源码</h3><p>登陆成功后，自动处理cookie，这样就可以正常访问页面了。返回的数据格式为html，通过xpath进行解析。为了避免对服务器产生压力，在夜间爬取数据，并且在settings.py里面并且设置延时5S。</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line">DOWNLOAD_DELAY = <span class="number">5</span></span><br></pre></td></tr></table></figure>
+
+<p>hotel.py源码如下：</p>
+<figure class="highlight python"><table><tr><td class="code"><pre><span class="line"><span class="keyword">import</span> scrapy</span><br><span class="line"><span class="keyword">from</span> scrapy.selector <span class="keyword">import</span> Selector</span><br><span class="line"><span class="keyword">from</span> scrapy.http <span class="keyword">import</span> FormRequest</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">class</span> <span class="title">HotelSpider</span><span class="params">(scrapy.Spider)</span>:</span></span><br><span class="line">    name = <span class="string">'hotel'</span></span><br><span class="line">    allowed_domains = [<span class="string">'checkhrs.zzzdex.com'</span>]</span><br><span class="line"></span><br><span class="line">    login_url = <span class="string">'http://checkhrs.zzzdex.com/piston/login'</span></span><br><span class="line"></span><br><span class="line">    url = <span class="string">'http://checkhrs.zzzdex.com/piston/hotel'</span></span><br><span class="line"></span><br><span class="line">    start_urls = [<span class="string">'http://checkhrs.zzzdex.com/piston/hotel'</span>]</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">login</span><span class="params">(self, response)</span>:</span></span><br><span class="line">        fd = &#123;<span class="string">'username'</span>:<span class="string">'usernamexxx'</span>, <span class="string">'password'</span>:<span class="string">'passwordxxx'</span>&#125;</span><br><span class="line">        <span class="keyword">yield</span> FormRequest.from_response(response,</span><br><span class="line">            formdata = fd,</span><br><span class="line">            callback = self.parse_login)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">parse_login</span><span class="params">(self, response)</span>:</span></span><br><span class="line">        <span class="keyword">if</span> <span class="string">'usernamexxx'</span> <span class="keyword">in</span> response.text:</span><br><span class="line">            print(<span class="string">"login success!"</span>)</span><br><span class="line">            <span class="keyword">yield</span> <span class="keyword">from</span> self.start_hotel_list()</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            print(<span class="string">"login fail!"</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">start_requests</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">yield</span> scrapy.Request(self.login_url,</span><br><span class="line">            meta = &#123;</span><br><span class="line"></span><br><span class="line">            &#125;,</span><br><span class="line">            encoding = <span class="string">'utf8'</span>,</span><br><span class="line">            headers = &#123;</span><br><span class="line">                <span class="string">'Content-Type'</span>: <span class="string">'application/x-www-form-urlencoded; charset=UTF-8'</span>,</span><br><span class="line">                <span class="string">'User-Agent'</span>: <span class="string">'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'</span></span><br><span class="line">            &#125;,</span><br><span class="line">            dont_filter = <span class="literal">True</span>,</span><br><span class="line">            callback = self.login)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">start_hotel_list</span><span class="params">(self)</span>:</span></span><br><span class="line">        <span class="keyword">yield</span> scrapy.Request(self.url,</span><br><span class="line">            meta = &#123;</span><br><span class="line"></span><br><span class="line">            &#125;,</span><br><span class="line">            encoding = <span class="string">'utf8'</span>,</span><br><span class="line">            headers = &#123;</span><br><span class="line">                <span class="string">'Content-Type'</span>: <span class="string">'application/x-www-form-urlencoded; charset=UTF-8'</span>,</span><br><span class="line">                <span class="string">'User-Agent'</span>: <span class="string">'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'</span></span><br><span class="line">            &#125;,</span><br><span class="line">            dont_filter = <span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">parse</span><span class="params">(self, response)</span>:</span></span><br><span class="line">        print(<span class="string">"parse"</span>)</span><br><span class="line">        selector = Selector(response)</span><br><span class="line"></span><br><span class="line">        select_list = selector.xpath(<span class="string">'//table//tbody//tr'</span>)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">for</span> sel <span class="keyword">in</span> select_list:</span><br><span class="line">            address = sel.xpath(<span class="string">'.//td[3]/text()'</span>).extract_first()</span><br><span class="line"></span><br><span class="line">            next_url = sel.xpath(<span class="string">'.//td//a[text()="编辑"]/@href'</span>).extract_first()</span><br><span class="line"></span><br><span class="line">            next_url = response.urljoin(next_url)</span><br><span class="line"></span><br><span class="line">            print(next_url)</span><br><span class="line"></span><br><span class="line">            <span class="keyword">yield</span> scrapy.Request(next_url,</span><br><span class="line">                meta = &#123;</span><br><span class="line">                    <span class="string">'address'</span>: address</span><br><span class="line">                &#125;,</span><br><span class="line">                encoding = <span class="string">'utf8'</span>,</span><br><span class="line">                headers = &#123;</span><br><span class="line">                    <span class="string">'Content-Type'</span>: <span class="string">'application/x-www-form-urlencoded; charset=UTF-8'</span>,</span><br><span class="line">                    <span class="string">'User-Agent'</span>: <span class="string">'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'</span></span><br><span class="line">                &#125;,</span><br><span class="line">                dont_filter = <span class="literal">True</span>,</span><br><span class="line">                callback = self.parseDetail)</span><br><span class="line"></span><br><span class="line">        totalStr = selector.xpath(<span class="string">'//ul[@class="pagination"]//li[last()-1]//text()'</span>).extract_first();</span><br><span class="line">        print(totalStr)</span><br><span class="line"></span><br><span class="line">        pageStr = selector.xpath(<span class="string">'//ul[@class="pagination"]//li[@class="active"]//text()'</span>).extract_first();</span><br><span class="line">        print(pageStr)</span><br><span class="line"></span><br><span class="line">        total = int(totalStr)</span><br><span class="line">        print(total)</span><br><span class="line"></span><br><span class="line">        page = int(pageStr)</span><br><span class="line">        print(page)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> page &gt;= total:</span><br><span class="line">            print(<span class="string">"last page"</span>)</span><br><span class="line">        <span class="keyword">else</span>:</span><br><span class="line">            next_page = self.url + <span class="string">"?page="</span> + str(page + <span class="number">1</span>)</span><br><span class="line">            print(<span class="string">"continue next page: "</span> + next_page)</span><br><span class="line">            <span class="keyword">yield</span> scrapy.Request(next_page,</span><br><span class="line">                meta = &#123;</span><br><span class="line">                &#125;,</span><br><span class="line">                encoding = <span class="string">'utf8'</span>,</span><br><span class="line">                headers = &#123;</span><br><span class="line">                    <span class="string">'Content-Type'</span>: <span class="string">'application/x-www-form-urlencoded; charset=UTF-8'</span>,</span><br><span class="line">                    <span class="string">'User-Agent'</span>: <span class="string">'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/80.0.3987.132 Safari/537.36'</span></span><br><span class="line">                &#125;,</span><br><span class="line">                dont_filter = <span class="literal">True</span>)</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">def</span> <span class="title">parseDetail</span><span class="params">(self, response)</span>:</span></span><br><span class="line">        address = response.meta[<span class="string">'address'</span>]</span><br><span class="line">        print(<span class="string">"parseDetail address is "</span> + address)</span><br><span class="line"></span><br><span class="line">        addresses = address.split(<span class="string">'/'</span>)</span><br><span class="line">        print(addresses)</span><br><span class="line"></span><br><span class="line">        country = <span class="string">""</span></span><br><span class="line">        province = <span class="string">""</span></span><br><span class="line">        city = <span class="string">""</span></span><br><span class="line"></span><br><span class="line">        address_len = len(addresses)</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> address_len &gt; <span class="number">0</span>:</span><br><span class="line">            country = addresses[<span class="number">0</span>].strip()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> address_len &gt; <span class="number">1</span>:</span><br><span class="line">            province = addresses[<span class="number">1</span>].strip()</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> address_len &gt; <span class="number">2</span>:</span><br><span class="line">            city = addresses[<span class="number">2</span>].strip()</span><br><span class="line"></span><br><span class="line">        selector = Selector(response)</span><br><span class="line"></span><br><span class="line">        hotelId = selector.xpath(<span class="string">'//input[@id="id"]/@value'</span>).extract_first()</span><br><span class="line"></span><br><span class="line">        group_list = selector.xpath(<span class="string">'//form//div[@class="form-group js_group"]'</span>)</span><br><span class="line"></span><br><span class="line">        hotelName = group_list[<span class="number">1</span>].xpath(<span class="string">'.//input[@id="hotel_name"]/@value'</span>).extract_first()</span><br><span class="line"></span><br><span class="line">        select_list = selector.xpath(<span class="string">'//form//div[contains(@class,"company_container")]'</span>)</span><br><span class="line">        <span class="keyword">for</span> sel <span class="keyword">in</span> select_list:</span><br><span class="line">            company_list = sel.xpath(<span class="string">'.//div[@class="panel-body"]//div[@class="form-group"]'</span>)</span><br><span class="line"></span><br><span class="line">            <span class="comment">#公司</span></span><br><span class="line">            companyName = company_list[<span class="number">0</span>].xpath(<span class="string">'.//input[@id="company"]/@value'</span>).extract_first()</span><br><span class="line"></span><br><span class="line">            <span class="comment">#单早</span></span><br><span class="line">            singlePrice = company_list[<span class="number">1</span>].xpath(<span class="string">'.//input/@value'</span>)[<span class="number">0</span>].extract()</span><br><span class="line"></span><br><span class="line">            <span class="comment">#双早</span></span><br><span class="line">            doublePrice = company_list[<span class="number">1</span>].xpath(<span class="string">'.//input/@value'</span>)[<span class="number">1</span>].extract()</span><br><span class="line"></span><br><span class="line">            <span class="comment">#风险指数</span></span><br><span class="line">            risk = company_list[<span class="number">2</span>].xpath(<span class="string">'.//input/@value'</span>).extract_first()</span><br><span class="line"></span><br><span class="line">            <span class="comment">#备注</span></span><br><span class="line">            remark = company_list[<span class="number">3</span>].xpath(<span class="string">'.//input/@value'</span>).extract_first()</span><br><span class="line"></span><br><span class="line">            <span class="keyword">yield</span> &#123;</span><br><span class="line">                <span class="string">'ID'</span>: hotelId,</span><br><span class="line">                <span class="string">'国家'</span>: country,</span><br><span class="line">                <span class="string">'省份'</span>: province,</span><br><span class="line">                <span class="string">'城市'</span>: city,</span><br><span class="line">                <span class="string">'酒店名'</span>: hotelName,</span><br><span class="line">                <span class="string">'公司'</span>: companyName,</span><br><span class="line">                <span class="string">'单早'</span>: singlePrice,</span><br><span class="line">                <span class="string">'双早'</span>: doublePrice,</span><br><span class="line">                <span class="string">'风险指数'</span>: risk,</span><br><span class="line">                <span class="string">'备注'</span>: remark</span><br><span class="line">            &#125;</span><br></pre></td></tr></table></figure>
+<h3 id="运行"><a href="#运行" class="headerlink" title="运行"></a>运行</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">scrapy crawl hotel -o ./outputs/hotel.csv</span><br></pre></td></tr></table></figure>
+<p>从晚上10点开始爬，大概第二天中午数据全部采集完成，没有错误，最终输出成CSV，按照ID排序后转成EXCEL即可。<br><img src="https://download.beyondspider.com/img/hotel/excel.png" alt="excel"></p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>在日常工作中利用爬虫技术，可以提高工作效率，避免手重复劳动。</p>
+]]></content>
+      <categories>
+        <category>爬虫成功案例</category>
+      </categories>
+      <tags>
+        <tag>python</tag>
+        <tag>爬虫</tag>
+        <tag>scrapy</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>（二）kubernetes（k8s）dashboard</title>
+    <url>/2020/08/24/k8s-dashboard/</url>
+    <content><![CDATA[<p><img src="https://download.beyondspider.com/img/weixin/top.gif" alt="top"></p>
+<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Dashboard 是基于网页的 Kubernetes 用户界面。可以很直观的管理k8s，降低新手学习难度。<br>github地址为：<a href="https://github.com/kubernetes/dashboard" target="_blank" rel="noopener">https://github.com/kubernetes/dashboard</a></p>
+<h2 id="安装"><a href="#安装" class="headerlink" title="安装"></a>安装</h2><h3 id="下载yaml文件"><a href="#下载yaml文件" class="headerlink" title="下载yaml文件"></a>下载yaml文件</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">wget https://raw.githubusercontent.com/kubernetes/dashboard/v2.0.3/aio/deploy/recommended.yaml</span><br></pre></td></tr></table></figure>
+
+<h3 id="修改配置"><a href="#修改配置" class="headerlink" title="修改配置"></a>修改配置</h3><p>找到Service部分</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kind: Service</span><br><span class="line">apiVersion: v1</span><br><span class="line">metadata:</span><br><span class="line">  labels:</span><br><span class="line">    k8s-app: kubernetes-dashboard</span><br><span class="line">  name: kubernetes-dashboard</span><br><span class="line">  namespace: kubernetes-dashboard</span><br><span class="line">spec:</span><br><span class="line">  ports:</span><br><span class="line">    - port: 443</span><br><span class="line">      targetPort: 8443</span><br><span class="line">  selector:</span><br><span class="line">    k8s-app: kubernetes-dashboard</span><br></pre></td></tr></table></figure>
+
+<p>改成如下内容，添加NodePort，nodePort为30002</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kind: Service</span><br><span class="line">apiVersion: v1</span><br><span class="line">metadata:</span><br><span class="line">  labels:</span><br><span class="line">    k8s-app: kubernetes-dashboard</span><br><span class="line">  name: kubernetes-dashboard</span><br><span class="line">  namespace: kubernetes-dashboard</span><br><span class="line">spec:</span><br><span class="line">  <span class="built_in">type</span>: NodePort</span><br><span class="line">  ports:</span><br><span class="line">    - port: 443</span><br><span class="line">      targetPort: 8443</span><br><span class="line">      nodePort: 30002</span><br><span class="line">  selector:</span><br><span class="line">    k8s-app: kubernetes-dashboard</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建dashboard"><a href="#创建dashboard" class="headerlink" title="创建dashboard"></a>创建dashboard</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl apply -f recommended.yaml</span><br></pre></td></tr></table></figure>
+
+<h3 id="查看dashboard状态"><a href="#查看dashboard状态" class="headerlink" title="查看dashboard状态"></a>查看dashboard状态</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get svc,pod,deployment -o wide -n kubernetes-dashboard</span><br></pre></td></tr></table></figure>
+<p>结果如下：<br><img src="https://download.beyondspider.com/img/k8s-dashboard/pod.png" alt="kubernetes-dashboard"></p>
+<h3 id="创建account"><a href="#创建account" class="headerlink" title="创建account"></a>创建account</h3><p>新建配置文件serviceAccount.yaml，内容如下</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">apiVersion: v1</span><br><span class="line">kind: ServiceAccount</span><br><span class="line">metadata:</span><br><span class="line">  name: admin-user</span><br><span class="line">  namespace: kubernetes-dashboard</span><br></pre></td></tr></table></figure>
+
+<p>通过kubectl apply创建</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl apply -f serviceAccount.yaml</span><br></pre></td></tr></table></figure>
+
+<p>查询是否创建成功</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl -n kubernetes-dashboard  get secret | grep <span class="string">"admin-user"</span></span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s-dashboard/admin-user.png" alt="admin-user"></p>
+<h3 id="设置权限"><a href="#设置权限" class="headerlink" title="设置权限"></a>设置权限</h3><p>新建配置文件clusterRoleBinding.yaml，内容如下</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">apiVersion: rbac.authorization.k8s.io/v1</span><br><span class="line">kind: ClusterRoleBinding</span><br><span class="line">metadata:</span><br><span class="line">  name: admin-user</span><br><span class="line">roleRef:</span><br><span class="line">  apiGroup: rbac.authorization.k8s.io</span><br><span class="line">  kind: ClusterRole</span><br><span class="line">  name: cluster-admin</span><br><span class="line">subjects:</span><br><span class="line">- kind: ServiceAccount</span><br><span class="line">  name: admin-user</span><br><span class="line">  namespace: kubernetes-dashboard</span><br></pre></td></tr></table></figure>
+
+<p>通过kubectl apply创建</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl apply -f clusterRoleBinding.yaml</span><br></pre></td></tr></table></figure>
+
+<p>查询secret</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep admin-user | awk <span class="string">'&#123;print $1&#125;'</span>)</span><br></pre></td></tr></table></figure>
+
+<p>复制token，并记录下来<br><img src="https://download.beyondspider.com/img/k8s-dashboard/secret.png" alt="secret"></p>
+<h3 id="访问dashboard"><a href="#访问dashboard" class="headerlink" title="访问dashboard"></a>访问dashboard</h3><p>IP地址为master节点IP，端口为30002，完整url为<a href="https://192.168.233.129:30002" target="_blank" rel="noopener">https://192.168.233.129:30002</a><br>登陆方式选择token，复制上面记录的token即可<br><img src="https://download.beyondspider.com/img/k8s-dashboard/dslogin.png" alt="dslogin"></p>
+<p>效果如下：<br><img src="https://download.beyondspider.com/img/k8s-dashboard/ds.png" alt="ds"></p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>我们可以通过命令行管理k8s，也可以通过ui管理，对于新手来说可以用ui，熟练之后建议用命令行。</p>
+<p><img src="https://download.beyondspider.com/img/weixin/bottom.gif" alt="bottom"></p>
+]]></content>
+      <categories>
+        <category>kubernetes</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
+        <tag>k8s</tag>
+        <tag>kubernetes</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>（一）kubernetes（k8s）安装与入门</title>
+    <url>/2020/08/17/k8s-hello-world/</url>
+    <content><![CDATA[<p><img src="https://download.beyondspider.com/img/weixin/top.gif" alt="top"></p>
+<h2 id="机器准备"><a href="#机器准备" class="headerlink" title="机器准备"></a>机器准备</h2><p>准备4台机器，至少2GB内存, 至少2个CPU。如果资源不够，可以用虚拟机，安装centos 7以上操作系统，本实验所用的版本号为：CentOS Linux release 7.6.1810 (Core)，机器规划如下：</p>
+<table>
+<thead>
+<tr>
+<th>name</th>
+<th>host</th>
+<th>ip</th>
+<th>user</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>master</td>
+<td>master, master.k8s.io</td>
+<td>192.168.233.129</td>
+<td>root</td>
+</tr>
+<tr>
+<td>slave1</td>
+<td>slave1, slave1.k8s.io</td>
+<td>192.168.233.131</td>
+<td>root</td>
+</tr>
+<tr>
+<td>slave2</td>
+<td>slave2, slave2.k8s.io</td>
+<td>192.168.233.132</td>
+<td>root</td>
+</tr>
+<tr>
+<td>slave3</td>
+<td>slave3, slave3.k8s.io</td>
+<td>192.168.233.133</td>
+<td>root</td>
+</tr>
+</tbody></table>
+<p>其中Pod网络地址分配如下：10.244.0.0/16，Service网络地址分配如下：10.96.0.0/12</p>
+<h2 id="机器配置（以master为例，其它的三台slave类似）"><a href="#机器配置（以master为例，其它的三台slave类似）" class="headerlink" title="机器配置（以master为例，其它的三台slave类似）"></a>机器配置（以master为例，其它的三台slave类似）</h2><h3 id="配置静态IP"><a href="#配置静态IP" class="headerlink" title="配置静态IP"></a>配置静态IP</h3><p>编辑文件/etc/sysconfig/network-scripts/ifcfg-ens33，</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">ONBOOT=yes</span><br><span class="line">BOOTPROTO=<span class="string">"static"</span></span><br><span class="line">IPADDR=192.168.233.129</span><br><span class="line">NETMASK=255.255.255.0</span><br><span class="line">GATEWAY=192.168.233.2</span><br><span class="line">PREFIX=24</span><br><span class="line">DNS1=192.168.233.2</span><br><span class="line">PEERDNS=no</span><br></pre></td></tr></table></figure>
+<h3 id="配置主机名"><a href="#配置主机名" class="headerlink" title="配置主机名"></a>配置主机名</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">hostnamectl <span class="built_in">set</span>-hostname master</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置hosts"><a href="#配置hosts" class="headerlink" title="配置hosts"></a>配置hosts</h3><p>/etc/hosts</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4</span><br><span class="line">::1         localhost localhost.localdomain localhost6 localhost6.localdomain6</span><br><span class="line">192.168.233.129 master master.k8s.io</span><br><span class="line">192.168.233.131 slave1 slave1.k8s.io</span><br><span class="line">192.168.233.132 slave2 slave2.k8s.io</span><br><span class="line">192.168.233.133 slave3 slave3.k8s.io</span><br></pre></td></tr></table></figure>
+
+<h2 id="系统设置"><a href="#系统设置" class="headerlink" title="系统设置"></a>系统设置</h2><table>
+<thead>
+<tr>
+<th>systemctl命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>systemctl start</td>
+<td>启动服务</td>
+</tr>
+<tr>
+<td>systemctl enable</td>
+<td>设置服务开机启动</td>
+</tr>
+<tr>
+<td>systemctl status</td>
+<td>查看服务状态</td>
+</tr>
+</tbody></table>
+<h3 id="开启时钟同步"><a href="#开启时钟同步" class="headerlink" title="开启时钟同步"></a>开启时钟同步</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">systemctl start chronyd.service</span><br><span class="line">systemctl <span class="built_in">enable</span> chronyd.service</span><br><span class="line">systemctl status chronyd.service</span><br></pre></td></tr></table></figure>
+
+<h3 id="关闭防火墙"><a href="#关闭防火墙" class="headerlink" title="关闭防火墙"></a>关闭防火墙</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">systemctl stop firewalld.service</span><br><span class="line">systemctl <span class="built_in">disable</span> firewalld.service</span><br><span class="line">systemctl status firewalld.service</span><br></pre></td></tr></table></figure>
+<h3 id="关闭SELinux"><a href="#关闭SELinux" class="headerlink" title="关闭SELinux"></a>关闭SELinux</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="comment">#Permissive</span></span><br><span class="line">setenforce 0</span><br><span class="line">getenforce</span><br><span class="line">sed -i <span class="string">'s/^SELINUX=enforcing$/SELINUX=permissive/'</span> /etc/selinux/config</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/SELinux.png" alt="SELinux"></p>
+<h3 id="关闭swap"><a href="#关闭swap" class="headerlink" title="关闭swap"></a>关闭swap</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">swapoff -a</span><br></pre></td></tr></table></figure>
+<p>编辑/etc/fstab，注释掉swap相关的行，行首前面加#<br><img src="https://download.beyondspider.com/img/k8s/fstab.png" alt="fstab"></p>
+<p>查询最终状态如下：</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">free -m</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/swap.png" alt="swap"></p>
+<p>最好重启一下机器，然后下一步安装docker</p>
+<h2 id="安装docker"><a href="#安装docker" class="headerlink" title="安装docker"></a>安装docker</h2><p><a href="https://docs.docker.com/engine/install/centos/" target="_blank" rel="noopener"><strong>docker install centos</strong></a></p>
+<h3 id="移除旧的docker"><a href="#移除旧的docker" class="headerlink" title="移除旧的docker"></a>移除旧的docker</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">yum remove docker \</span><br><span class="line">      docker-client \</span><br><span class="line">      docker-client-latest \</span><br><span class="line">      docker-common \</span><br><span class="line">      docker-latest \</span><br><span class="line">      docker-latest-logrotate \</span><br><span class="line">      docker-logrotate \</span><br><span class="line">      docker-engine</span><br></pre></td></tr></table></figure>
+
+<h3 id="设置docker-ce-repo"><a href="#设置docker-ce-repo" class="headerlink" title="设置docker-ce.repo"></a>设置docker-ce.repo</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">yum install -y yum-utils</span><br><span class="line"></span><br><span class="line">yum-config-manager \</span><br><span class="line">    --add-repo \</span><br><span class="line">    https://download.docker.com/linux/centos/docker-ce.repo</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="安装docker-ce"><a href="#安装docker-ce" class="headerlink" title="安装docker-ce"></a>安装docker-ce</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">yum install docker-ce</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置docker"><a href="#配置docker" class="headerlink" title="配置docker"></a>配置docker</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">mkdir /etc/docker</span><br><span class="line"></span><br><span class="line"><span class="comment"># Setup daemon.</span></span><br><span class="line">cat &gt; /etc/docker/daemon.json &lt;&lt;EOF</span><br><span class="line">&#123;</span><br><span class="line">  <span class="string">"exec-opts"</span>: [<span class="string">"native.cgroupdriver=systemd"</span>],</span><br><span class="line">  <span class="string">"log-driver"</span>: <span class="string">"json-file"</span>,</span><br><span class="line">  <span class="string">"log-opts"</span>: &#123;</span><br><span class="line">    <span class="string">"max-size"</span>: <span class="string">"100m"</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="string">"storage-driver"</span>: <span class="string">"overlay2"</span>,</span><br><span class="line">  <span class="string">"storage-opts"</span>: [</span><br><span class="line">    <span class="string">"overlay2.override_kernel_check=true"</span></span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br><span class="line">EOF</span><br><span class="line"></span><br><span class="line">sed -i <span class="string">"13i ExecStartPost=/usr/sbin/iptables -P FORWARD ACCEPT"</span> /usr/lib/systemd/system/docker.service</span><br><span class="line"></span><br><span class="line"><span class="comment"># start Docker</span></span><br><span class="line">service network restart</span><br><span class="line">systemctl daemon-reload</span><br><span class="line">systemctl <span class="built_in">enable</span> docker</span><br><span class="line">systemctl start docker</span><br><span class="line">docker info</span><br></pre></td></tr></table></figure>
+
+<h2 id="安装kubernetes"><a href="#安装kubernetes" class="headerlink" title="安装kubernetes"></a>安装kubernetes</h2><p><a href="https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/" target="_blank" rel="noopener"><strong>kubernetes install kubeadm</strong></a></p>
+<h3 id="配置kubernetes-repo"><a href="#配置kubernetes-repo" class="headerlink" title="配置kubernetes.repo"></a>配置kubernetes.repo</h3><p>google源</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">cat &lt;&lt;EOF | sudo tee /etc/yum.repos.d/kubernetes.repo</span><br><span class="line">[kubernetes]</span><br><span class="line">name=Kubernetes</span><br><span class="line">baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\<span class="variable">$basearch</span></span><br><span class="line">enabled=1</span><br><span class="line">gpgcheck=1</span><br><span class="line">repo_gpgcheck=1</span><br><span class="line">gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg</span><br><span class="line">exclude=kubelet kubeadm kubectl</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+
+<p>阿里镜像源</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">touch /etc/yum.repos.d/kubernetes.repo</span><br><span class="line">cat &gt; /etc/yum.repos.d/kubernetes.repo &lt;&lt;EOF</span><br><span class="line">[kubernetes]</span><br><span class="line">name=Kubernetes Repo</span><br><span class="line">enabled=1</span><br><span class="line">gpgcheck=1</span><br><span class="line">repo_gpgcheck=1</span><br><span class="line">baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/</span><br><span class="line">gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+
+<h3 id="安装k8s"><a href="#安装k8s" class="headerlink" title="安装k8s"></a>安装k8s</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">yum -y install kubelet kubeadm kubectl</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置网络路由相关"><a href="#配置网络路由相关" class="headerlink" title="配置网络路由相关"></a>配置网络路由相关</h3><p>Make sure that the br_netfilter module is loaded. This can be done by running</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">lsmod | grep br_netfilter</span><br></pre></td></tr></table></figure>
+<p>To load it explicitly call</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">modprobe br_netfilter</span><br></pre></td></tr></table></figure>
+
+<p>配置k8s.conf</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">cat &lt;&lt;EOF | sudo tee /etc/sysctl.d/k8s.conf</span><br><span class="line">net.bridge.bridge-nf-call-iptables=1</span><br><span class="line">net.bridge.bridge-nf-call-ip6tables=1</span><br><span class="line">net.ipv4.ip_forward=1</span><br><span class="line">net.ipv4.tcp_tw_recycle=0</span><br><span class="line">vm.swappiness=0</span><br><span class="line">vm.overcommit_memory=1</span><br><span class="line">vm.panic_on_oom=0</span><br><span class="line">fs.inotify.max_user_watches=89100</span><br><span class="line">fs.file-max=52706963</span><br><span class="line">fs.nr_open=52706963</span><br><span class="line">net.ipv6.conf.all.disable_ipv6=1</span><br><span class="line">net.netfilter.nf_conntrack_max=2310720</span><br><span class="line">EOF</span><br><span class="line">sysctl --system</span><br></pre></td></tr></table></figure>
+
+<p>enable ip_forward</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line"><span class="built_in">echo</span> 1 &gt; /proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置kubelet-service"><a href="#配置kubelet-service" class="headerlink" title="配置kubelet.service"></a>配置kubelet.service</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">systemctl <span class="built_in">enable</span> kubelet.service</span><br></pre></td></tr></table></figure>
+
+<p>以上配置，master和slave是一样的过程。</p>
+<h2 id="下载k8s镜像"><a href="#下载k8s镜像" class="headerlink" title="下载k8s镜像"></a>下载k8s镜像</h2><p>由于k8s镜像默认下载不了，需要通过docker hub mirror进行下载</p>
+<p>获取所需镜像版本</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubeadm config images list</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/images.png" alt="images"></p>
+<p>master节点下载</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker pull mirrorgcrio/kube-apiserver:v1.18.6</span><br><span class="line">docker pull mirrorgcrio/kube-controller-manager:v1.18.6</span><br><span class="line">docker pull mirrorgcrio/kube-scheduler:v1.18.6</span><br><span class="line">docker pull mirrorgcrio/kube-proxy:v1.18.6</span><br><span class="line">docker pull mirrorgcrio/pause:3.2</span><br><span class="line">docker pull mirrorgcrio/etcd:3.4.3-0</span><br><span class="line">docker pull mirrorgcrio/coredns:1.6.7</span><br><span class="line"></span><br><span class="line">docker tag mirrorgcrio/kube-apiserver:v1.18.6 k8s.gcr.io/kube-apiserver:v1.18.6</span><br><span class="line">docker tag mirrorgcrio/kube-controller-manager:v1.18.6 k8s.gcr.io/kube-controller-manager:v1.18.6</span><br><span class="line">docker tag mirrorgcrio/kube-scheduler:v1.18.6 k8s.gcr.io/kube-scheduler:v1.18.6</span><br><span class="line">docker tag mirrorgcrio/kube-proxy:v1.18.6 k8s.gcr.io/kube-proxy:v1.18.6</span><br><span class="line">docker tag mirrorgcrio/pause:3.2 k8s.gcr.io/pause:3.2</span><br><span class="line">docker tag mirrorgcrio/etcd:3.4.3-0 k8s.gcr.io/etcd:3.4.3-0</span><br><span class="line">docker tag mirrorgcrio/coredns:1.6.7 k8s.gcr.io/coredns:1.6.7</span><br><span class="line"></span><br><span class="line">docker rmi mirrorgcrio/kube-apiserver:v1.18.6</span><br><span class="line">docker rmi mirrorgcrio/kube-controller-manager:v1.18.6</span><br><span class="line">docker rmi mirrorgcrio/kube-scheduler:v1.18.6</span><br><span class="line">docker rmi mirrorgcrio/kube-proxy:v1.18.6</span><br><span class="line">docker rmi mirrorgcrio/pause:3.2</span><br><span class="line">docker rmi mirrorgcrio/etcd:3.4.3-0</span><br><span class="line">docker rmi mirrorgcrio/coredns:1.6.7</span><br></pre></td></tr></table></figure>
+
+<p>master节点最终镜像列表</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker images | grep <span class="string">"k8s.gcr.io"</span></span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/k8s.gcr.io.png" alt="k8s.gcr.io"></p>
+<p>slave节点只需要下载kube-proxy:v1.18.6y和pause:3.2</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">docker pull mirrorgcrio/kube-proxy:v1.18.6</span><br><span class="line">docker pull mirrorgcrio/pause:3.2</span><br><span class="line"></span><br><span class="line">docker tag mirrorgcrio/kube-proxy:v1.18.6 k8s.gcr.io/kube-proxy:v1.18.6</span><br><span class="line">docker tag mirrorgcrio/pause:3.2 k8s.gcr.io/pause:3.2</span><br><span class="line"></span><br><span class="line">docker rmi mirrorgcrio/kube-proxy:v1.18.6</span><br><span class="line">docker rmi mirrorgcrio/pause:3.2</span><br></pre></td></tr></table></figure>
+<p>请确保所有的机器镜像都提前下载好，否则后面k8s启动会失败。</p>
+<h2 id="启动k8s"><a href="#启动k8s" class="headerlink" title="启动k8s"></a>启动k8s</h2><h3 id="master"><a href="#master" class="headerlink" title="master"></a>master</h3><p>运行kubeadm init</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubeadm init \</span><br><span class="line">    --kubernetes-version=v1.18.6 \</span><br><span class="line">    --pod-network-cidr=10.244.0.0/16 \</span><br><span class="line">    --service-cidr=10.96.0.0/12 \</span><br><span class="line">    --apiserver-advertise-address=0.0.0.0</span><br><span class="line"></span><br><span class="line">mkdir -p <span class="variable">$HOME</span>/.kube</span><br><span class="line">sudo cp -i /etc/kubernetes/admin.conf <span class="variable">$HOME</span>/.kube/config</span><br><span class="line">sudo chown $(id -u):$(id -g) <span class="variable">$HOME</span>/.kube/config</span><br><span class="line"></span><br><span class="line">kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml</span><br></pre></td></tr></table></figure>
+
+<h3 id="slave"><a href="#slave" class="headerlink" title="slave"></a>slave</h3><p>复制master节点/run/flannel/subnet.env到各个slave节点</p>
+<p>运行kubeadm join命令，xxx和yyy分别是master打印出来的日志里面的内容</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubeadm join 192.168.233.129:6443 --token xxx \</span><br><span class="line">     --discovery-token-ca-cert-hash yyy</span><br></pre></td></tr></table></figure>
+
+<h2 id="检查状态"><a href="#检查状态" class="headerlink" title="检查状态"></a>检查状态</h2><p>master节点执行</p>
+<h3 id="集群组件状态"><a href="#集群组件状态" class="headerlink" title="集群组件状态"></a>集群组件状态</h3><h4 id="命令"><a href="#命令" class="headerlink" title="命令"></a>命令</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get cs</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/kubectlgetcs.png" alt="kubectlgetcs"></p>
+<h4 id="故障排查"><a href="#故障排查" class="headerlink" title="故障排查"></a>故障排查</h4><p>kubernetes:v1.18.6 get cs127.0.0.1 connection refused</p>
+<p>编辑文件/etc/kubernetes/manifests/kube-controller-manager.yaml和/etc/kubernetes/manifests/kube-scheduler.yaml<br>注释或删除掉 –port=0所在的行</p>
+<p>重启kubelet.service</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">systemctl restart kubelet.service</span><br></pre></td></tr></table></figure>
+
+<h3 id="集群节点状态"><a href="#集群节点状态" class="headerlink" title="集群节点状态"></a>集群节点状态</h3><h4 id="命令-1"><a href="#命令-1" class="headerlink" title="命令"></a>命令</h4><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get nodes</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/kubectlgetnodes.png" alt="kubectlgetnodes"></p>
+<h2 id="Hello-World"><a href="#Hello-World" class="headerlink" title="Hello World"></a>Hello World</h2><p>master节点执行</p>
+<h3 id="创建service"><a href="#创建service" class="headerlink" title="创建service"></a>创建service</h3><p>创建文件 hello-service.xml</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello-service</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">hello-k8s-demo</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">      <span class="attr">port:</span> <span class="number">81</span></span><br><span class="line">      <span class="attr">targetPort:</span> <span class="number">80</span></span><br><span class="line">      <span class="attr">nodePort:</span> <span class="number">30001</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br></pre></td></tr></table></figure>
+
+<p>执行命令kubectl create，其中80是nginx端口，81是pod端口，30001是映射到外部的端口</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl create -f hello-service.xml</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建deployment和pod"><a href="#创建deployment和pod" class="headerlink" title="创建deployment和pod"></a>创建deployment和pod</h3><p>创建文件hello-deployment.xml</p>
+<figure class="highlight yaml"><table><tr><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">hello-k8s-demo</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello-deployment</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">2</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">hello-k8s-demo</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">hello-k8s-demo</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">image:</span> <span class="string">docker.io/nginx:latest</span></span><br><span class="line">        <span class="attr">name:</span> <span class="string">hello-k8s</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<p>执行命令kubectl create, pod数量为2，会随机选择2个slave节点运行nginx docker</p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl create -f hello-deployment.xml</span><br></pre></td></tr></table></figure>
+
+<h3 id="查询状态"><a href="#查询状态" class="headerlink" title="查询状态"></a>查询状态</h3><figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">kubectl get svc,pod,deployment -o wide</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/svcpoddeployment.png" alt="svcpoddeployment"></p>
+<h3 id="验证nginx"><a href="#验证nginx" class="headerlink" title="验证nginx"></a>验证nginx</h3><p>如上图hello-service的IP为10.101.171.221, 内部端口为81，外部IP为：192.168.233.129（master IP），端口为30001</p>
+<p>在master，slave，节点内部访问<a href="http://10.101.171.221:81进行验证">http://10.101.171.221:81进行验证</a></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl http://10.101.171.221:81</span><br></pre></td></tr></table></figure>
+
+<p>看到如下内容，说明成功</p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">title</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span></span><br><span class="line">    body &#123;</span><br><span class="line">        width: 35em;</span><br><span class="line">        margin: 0 auto;</span><br><span class="line">        font-family: Tahoma, Verdana, Arial, sans-serif;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>If you see this page, the nginx web server is successfully installed and</span><br><span class="line">working. Further configuration is required.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>For online documentation and support please refer to</span><br><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"http://nginx.org/"</span>&gt;</span>nginx.org<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;<span class="name">br</span>/&gt;</span></span><br><span class="line">Commercial support is available at</span><br><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"http://nginx.com/"</span>&gt;</span>nginx.com<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span><span class="tag">&lt;<span class="name">em</span>&gt;</span>Thank you for using nginx.<span class="tag">&lt;/<span class="name">em</span>&gt;</span><span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>在k8s外部访问<a href="http://192.168.233.129:30001进行验证">http://192.168.233.129:30001进行验证</a></p>
+<figure class="highlight bash"><table><tr><td class="code"><pre><span class="line">curl http://192.168.233.129:30001</span><br></pre></td></tr></table></figure>
+<p>结果相同</p>
+<figure class="highlight html"><table><tr><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">title</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span></span><br><span class="line">    body &#123;</span><br><span class="line">        width: 35em;</span><br><span class="line">        margin: 0 auto;</span><br><span class="line">        font-family: Tahoma, Verdana, Arial, sans-serif;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>If you see this page, the nginx web server is successfully installed and</span><br><span class="line">working. Further configuration is required.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>For online documentation and support please refer to</span><br><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"http://nginx.org/"</span>&gt;</span>nginx.org<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;<span class="name">br</span>/&gt;</span></span><br><span class="line">Commercial support is available at</span><br><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"http://nginx.com/"</span>&gt;</span>nginx.com<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span><span class="tag">&lt;<span class="name">em</span>&gt;</span>Thank you for using nginx.<span class="tag">&lt;/<span class="name">em</span>&gt;</span><span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>我们通过虚拟机可以配置k8s集群，其中一台master，3台slave，k8s启动之后就可以运行nginx hello world例子。</p>
+<p><img src="https://download.beyondspider.com/img/weixin/bottom.gif" alt="bottom"></p>
+]]></content>
+      <categories>
+        <category>kubernetes</category>
+      </categories>
+      <tags>
+        <tag>docker</tag>
+        <tag>k8s</tag>
+        <tag>kubernetes</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>Hello World</title>
+    <url>/2020/02/20/hello-world/</url>
+    <content><![CDATA[<p>超越爬虫beyondspider上线啦！程序员编程技术交流，包括前端、移动APP、Web网站、Restful API, 微服务、爬虫、docker、Jenkins、CI/CD等。</p>
+<p>扫码关注公众号：beyondspider</p>
+<p><img src="https://download.beyondspider.com/img/hello-world/logo.gif" alt="logo"></p>
+]]></content>
+  </entry>
+  <entry>
+    <title>（三）网络爬虫抓包入门篇——charles抓包</title>
+    <url>/2020/03/09/spider-charles/</url>
+    <content><![CDATA[<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Charles is an HTTP proxy / HTTP monitor / Reverse Proxy that enables a developer to view all of the HTTP and SSL / HTTPS traffic between their machine and the Internet. This includes requests, responses and the HTTP headers (which contain the cookies and caching information).</p>
+<h3 id="支持平台"><a href="#支持平台" class="headerlink" title="支持平台"></a>支持平台</h3><p>支持Mac、Windows、Linux三大操作系统。<br>支持http抓包，通过安装证书还可以支持https协议，支持手机抓包，包括Android和iOS。<br>下载地址：<a href="https://www.charlesproxy.com" target="_blank" rel="noopener">https://www.charlesproxy.com</a></p>
+<h3 id="charles使用"><a href="#charles使用" class="headerlink" title="charles使用"></a>charles使用</h3><p><img src="https://download.beyondspider.com/img/spider-charles/charles.png" alt="charles"></p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>Charles和Fiddler可以同时使用，充分利用各种优势，具体的使用方式可以参考官网文档。</p>
+]]></content>
+      <categories>
+        <category>网络爬虫</category>
+      </categories>
+      <tags>
+        <tag>抓包</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>（一）网络爬虫抓包入门篇——chrome抓包</title>
+    <url>/2020/03/09/spider-chrome/</url>
+    <content><![CDATA[<h2 id="抓包"><a href="#抓包" class="headerlink" title="抓包"></a>抓包</h2><p>通常学习爬虫，第一步就是要抓包，然后分析网络请求的和结果，知道了数据格式之后就可以程序模拟浏览器的行为，从而实现数据采集的过程。所以抓包是非常重要的一个环节，下面我们利用Chrome浏览器自带功能进行抓包。</p>
+<h3 id="Chrome开发者模式"><a href="#Chrome开发者模式" class="headerlink" title="Chrome开发者模式"></a>Chrome开发者模式</h3><p>打开谷歌开发者模式, 点击“网络”标签页，可以查看Resquest和Response数据。</p>
+<p><img src="https://download.beyondspider.com/img/spider-chrome/chrome-debug.png" alt="chrome-debug"></p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>Chrome抓包能满足基本需求，但是功能有限，而且有时候Response数据丢失，所以推荐专业的抓包工具Fiddler和Charles。</p>
+]]></content>
+      <categories>
+        <category>网络爬虫</category>
+      </categories>
+      <tags>
+        <tag>抓包</tag>
+      </tags>
+  </entry>
+  <entry>
+    <title>（二）网络爬虫抓包入门篇——fiddler抓包</title>
+    <url>/2020/03/09/spider-fiddler/</url>
+    <content><![CDATA[<h2 id="简介"><a href="#简介" class="headerlink" title="简介"></a>简介</h2><p>Fiddler是一个http协议调试代理工具，它能够记录并检查所有你的电脑和互联网之间的http通讯，设置断点，查看所有的“进出”Fiddler的数据（指cookie,html,js,css等文件）。Fiddler要比其他的网络调试器要更加简单，因为它不仅仅暴露http通讯，还提供了一个用户友好的格式。</p>
+<h3 id="支持平台"><a href="#支持平台" class="headerlink" title="支持平台"></a>支持平台</h3><p>支持Mac、Windows、Linux三大操作系统。<br>支持http抓包，通过安装证书还可以支持https协议，支持手机抓包，包括Android和iOS。<br>下载地址：<a href="http://www.telerik.com/fiddler" target="_blank" rel="noopener">www.telerik.com/fiddler</a></p>
+<h3 id="Fiddler使用"><a href="#Fiddler使用" class="headerlink" title="Fiddler使用"></a>Fiddler使用</h3><p><img src="https://download.beyondspider.com/img/spider-fiddler/fiddler.png" alt="fiddler"></p>
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>Fiddler目前是Windows上面非常流行的抓包软件，Mac是最近才支持的，所以功能比较弱，但是正常使用也够用了。如果需要更多的功能，推荐Charles抓包软件，可以免费或付费使用。</p>
+]]></content>
+      <categories>
+        <category>网络爬虫</category>
+      </categories>
+      <tags>
+        <tag>抓包</tag>
+      </tags>
+  </entry>
+</search>

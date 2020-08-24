@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=2">
+<meta name="theme-color" content="#222">
+<meta name="generator" content="Hexo 4.2.1">
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+  <meta name="baidu-site-verification" content="kVw2VXEpWU">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+<link rel="stylesheet" href="/lib/font-awesome/css/font-awesome.min.css">
+
+<script id="hexo-configurations">
+    var NexT = window.NexT || {};
+    var CONFIG = {"hostname":"www.beyondspider.com","root":"/","scheme":"Gemini","version":"7.7.2","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12,"onmobile":false},"copycode":{"enable":false,"show_result":false,"style":null},"back2top":{"enable":true,"sidebar":false,"scrollpercent":false},"bookmark":{"enable":false,"color":"#222","save":"auto"},"fancybox":false,"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"algolia":{"hits":{"per_page":10},"labels":{"input_placeholder":"Search for Posts","hits_empty":"We didn't find any results for the search: ${query}","hits_stats":"${hits} results found in ${time} ms"}},"localsearch":{"enable":true,"trigger":"auto","top_n_per_article":5,"unescape":false,"preload":false},"motion":{"enable":false,"async":false,"transition":{"post_block":"fadeIn","post_header":"slideDownIn","post_body":"slideDownIn","coll_header":"slideLeftIn","sidebar":"slideUpIn"}},"path":"search.xml"};
+  </script>
+
+  <meta name="description" content="机器准备准备4台机器，至少2GB内存, 至少2个CPU。如果资源不够，可以用虚拟机，安装centos 7以上操作系统，本实验所用的版本号为：CentOS Linux release 7.6.1810 (Core)，机器规划如下：    name host ip user    master master, master.k8s.io 192.168.233.129 root   slave1 s">
+<meta property="og:type" content="article">
+<meta property="og:title" content="（一）kubernetes（k8s）安装与入门">
+<meta property="og:url" content="https://www.beyondspider.com/2020/08/17/k8s-hello-world/index.html">
+<meta property="og:site_name" content="超越爬虫">
+<meta property="og:description" content="机器准备准备4台机器，至少2GB内存, 至少2个CPU。如果资源不够，可以用虚拟机，安装centos 7以上操作系统，本实验所用的版本号为：CentOS Linux release 7.6.1810 (Core)，机器规划如下：    name host ip user    master master, master.k8s.io 192.168.233.129 root   slave1 s">
+<meta property="og:locale" content="zh_CN">
+<meta property="og:image" content="https://download.beyondspider.com/img/weixin/top.gif">
+<meta property="og:image" content="https://download.beyondspider.com/img/k8s/SELinux.png">
+<meta property="og:image" content="https://download.beyondspider.com/img/k8s/fstab.png">
+<meta property="og:image" content="https://download.beyondspider.com/img/k8s/swap.png">
+<meta property="og:image" content="https://download.beyondspider.com/img/k8s/images.png">
+<meta property="og:image" content="https://download.beyondspider.com/img/k8s/k8s.gcr.io.png">
+<meta property="og:image" content="https://download.beyondspider.com/img/k8s/kubectlgetcs.png">
+<meta property="og:image" content="https://download.beyondspider.com/img/k8s/kubectlgetnodes.png">
+<meta property="og:image" content="https://download.beyondspider.com/img/k8s/svcpoddeployment.png">
+<meta property="og:image" content="https://download.beyondspider.com/img/weixin/bottom.gif">
+<meta property="article:published_time" content="2020-08-17T05:08:39.000Z">
+<meta property="article:modified_time" content="2020-08-24T07:27:13.879Z">
+<meta property="article:author" content="beyondspider">
+<meta property="article:tag" content="docker">
+<meta property="article:tag" content="k8s">
+<meta property="article:tag" content="kubernetes">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="https://download.beyondspider.com/img/weixin/top.gif">
+
+<link rel="canonical" href="https://www.beyondspider.com/2020/08/17/k8s-hello-world/">
+
+
+<script id="page-configurations">
+  // https://hexo.io/docs/variables.html
+  CONFIG.page = {
+    sidebar: "",
+    isHome : false,
+    isPost : true
+  };
+</script>
+
+  <title>（一）kubernetes（k8s）安装与入门 | 超越爬虫</title>
+  
+
+
+  <script>
+    var _hmt = _hmt || [];
+    (function() {
+      var hm = document.createElement("script");
+      hm.src = "https://hm.baidu.com/hm.js?fb3197112e930baa8d0fba60e37da72f";
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(hm, s);
+    })();
+  </script>
+
+
+
+
+  <noscript>
+  <style>
+  .use-motion .brand,
+  .use-motion .menu-item,
+  .sidebar-inner,
+  .use-motion .post-block,
+  .use-motion .pagination,
+  .use-motion .comments,
+  .use-motion .post-header,
+  .use-motion .post-body,
+  .use-motion .collection-header { opacity: initial; }
+
+  .use-motion .site-title,
+  .use-motion .site-subtitle {
+    opacity: initial;
+    top: initial;
+  }
+
+  .use-motion .logo-line-before i { left: initial; }
+  .use-motion .logo-line-after i { right: initial; }
+  </style>
+</noscript>
+
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage">
+  <div class="container">
+    <div class="headband"></div>
+
+    <header class="header" itemscope itemtype="http://schema.org/WPHeader">
+      <div class="header-inner"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="切换导航栏">
+      <span class="toggle-line toggle-line-first"></span>
+      <span class="toggle-line toggle-line-middle"></span>
+      <span class="toggle-line toggle-line-last"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <div>
+      <a href="/" class="brand" rel="start">
+        <span class="logo-line-before"><i></i></span>
+        <span class="site-title">超越爬虫</span>
+        <span class="logo-line-after"><i></i></span>
+      </a>
+    </div>
+        <h1 class="site-subtitle" itemprop="description">beyondspider</h1>
+      
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger">
+        <i class="fa fa-search fa-fw fa-lg"></i>
+    </div>
+  </div>
+</div>
+
+
+<nav class="site-nav">
+  
+  <ul id="menu" class="menu">
+        <li class="menu-item menu-item-home">
+
+    <a href="/" rel="section"><i class="fa fa-fw fa-home"></i>首页</a>
+
+  </li>
+        <li class="menu-item menu-item-about">
+
+    <a href="/about/" rel="section"><i class="fa fa-fw fa-user"></i>关于</a>
+
+  </li>
+        <li class="menu-item menu-item-tags">
+
+    <a href="/tags/" rel="section"><i class="fa fa-fw fa-tags"></i>标签<span class="badge">7</span></a>
+
+  </li>
+        <li class="menu-item menu-item-categories">
+
+    <a href="/categories/" rel="section"><i class="fa fa-fw fa-th"></i>分类<span class="badge">4</span></a>
+
+  </li>
+        <li class="menu-item menu-item-archives">
+
+    <a href="/archives/" rel="section"><i class="fa fa-fw fa-archive"></i>归档<span class="badge">9</span></a>
+
+  </li>
+        <li class="menu-item menu-item-sitemap">
+
+    <a href="/sitemap.xml" rel="section"><i class="fa fa-fw fa-sitemap"></i>站点地图</a>
+
+  </li>
+      <li class="menu-item menu-item-search">
+        <a role="button" class="popup-trigger"><i class="fa fa-search fa-fw"></i>搜索
+        </a>
+      </li>
+  </ul>
+
+</nav>
+  <div class="site-search">
+    <div class="search-pop-overlay">
+  <div class="popup search-popup">
+      <div class="search-header">
+  <span class="search-icon">
+    <i class="fa fa-search"></i>
+  </span>
+  <div class="search-input-container">
+    <input autocomplete="off" autocorrect="off" autocapitalize="off"
+           placeholder="搜索..." spellcheck="false"
+           type="search" class="search-input">
+  </div>
+  <span class="popup-btn-close">
+    <i class="fa fa-times-circle"></i>
+  </span>
+</div>
+<div id="search-result">
+  <div id="no-result">
+    <i class="fa fa-spinner fa-pulse fa-5x fa-fw"></i>
+  </div>
+</div>
+
+  </div>
+</div>
+
+  </div>
+</div>
+    </header>
+
+    
+  <div class="back-to-top">
+    <i class="fa fa-arrow-up"></i>
+    <span>0%</span>
+  </div>
+
+  <a href="https://github.com/beyondspider" class="github-corner" title="Follow me on GitHub" aria-label="Follow me on GitHub" rel="noopener" target="_blank"><svg width="80" height="80" viewBox="0 0 250 250" aria-hidden="true"><path d="M0,0 L115,115 L130,115 L142,142 L250,250 L250,0 Z"></path><path d="M128.3,109.0 C113.8,99.7 119.0,89.6 119.0,89.6 C122.0,82.7 120.5,78.6 120.5,78.6 C119.2,72.0 123.4,76.3 123.4,76.3 C127.3,80.9 125.5,87.3 125.5,87.3 C122.9,97.6 130.6,101.9 134.4,103.2" fill="currentColor" style="transform-origin: 130px 106px;" class="octo-arm"></path><path d="M115.0,115.0 C114.9,115.1 118.7,116.5 119.8,115.4 L133.7,101.6 C136.9,99.2 139.9,98.4 142.2,98.6 C133.8,88.0 127.5,74.4 143.8,58.0 C148.5,53.4 154.0,51.2 159.7,51.0 C160.3,49.4 163.2,43.6 171.4,40.1 C171.4,40.1 176.1,42.5 178.8,56.2 C183.1,58.6 187.2,61.8 190.9,65.4 C194.5,69.0 197.7,73.2 200.1,77.6 C213.8,80.2 216.3,84.9 216.3,84.9 C212.7,93.1 206.9,96.0 205.4,96.6 C205.1,102.4 203.0,107.8 198.3,112.5 C181.9,128.9 168.3,122.5 157.7,114.1 C157.9,116.9 156.7,120.9 152.7,124.9 L141.0,136.5 C139.8,137.7 141.6,141.9 141.8,141.8 Z" fill="currentColor" class="octo-body"></path></svg></a>
+
+
+    <main class="main">
+      <div class="main-inner">
+        <div class="content-wrap">
+          
+
+          <div class="content">
+            
+
+  <div class="posts-expand">
+      
+  
+  
+  <article itemscope itemtype="http://schema.org/Article" class="post-block " lang="zh-CN">
+    <link itemprop="mainEntityOfPage" href="https://www.beyondspider.com/2020/08/17/k8s-hello-world/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/beyondspider.png">
+      <meta itemprop="name" content="beyondspider">
+      <meta itemprop="description" content="beyondspider,超越爬虫">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="超越爬虫">
+    </span>
+      <header class="post-header">
+        <h2 class="post-title" itemprop="name headline">
+          （一）kubernetes（k8s）安装与入门
+        </h2>
+
+        <div class="post-meta">
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              <span class="post-meta-item-text">发表于</span>
+
+              <time title="创建时间：2020-08-17 13:08:39" itemprop="dateCreated datePublished" datetime="2020-08-17T13:08:39+08:00">2020-08-17</time>
+            </span>
+              <span class="post-meta-item">
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-calendar-check-o"></i>
+                </span>
+                <span class="post-meta-item-text">更新于</span>
+                <time title="修改时间：2020-08-24 15:27:13" itemprop="dateModified" datetime="2020-08-24T15:27:13+08:00">2020-08-24</time>
+              </span>
+            <span class="post-meta-item">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-folder-o"></i>
+              </span>
+              <span class="post-meta-item-text">分类于</span>
+                <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+                  <a href="/categories/kubernetes/" itemprop="url" rel="index"><span itemprop="name">kubernetes</span></a>
+                </span>
+            </span>
+
+          
+            <span id="/2020/08/17/k8s-hello-world/" class="post-meta-item leancloud_visitors" data-flag-title="（一）kubernetes（k8s）安装与入门" title="阅读次数">
+              <span class="post-meta-item-icon">
+                <i class="fa fa-eye"></i>
+              </span>
+              <span class="post-meta-item-text">阅读次数：</span>
+              <span class="leancloud-visitors-count"></span>
+            </span>
+  
+  <span class="post-meta-item">
+    
+      <span class="post-meta-item-icon">
+        <i class="fa fa-comment-o"></i>
+      </span>
+      <span class="post-meta-item-text">Valine：</span>
+    
+    <a title="valine" href="/2020/08/17/k8s-hello-world/#valine-comments" itemprop="discussionUrl">
+      <span class="post-comments-count valine-comment-count" data-xid="/2020/08/17/k8s-hello-world/" itemprop="commentCount"></span>
+    </a>
+  </span>
+  
+  
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+        <p><img src="https://download.beyondspider.com/img/weixin/top.gif" alt="top"></p>
+<h2 id="机器准备"><a href="#机器准备" class="headerlink" title="机器准备"></a>机器准备</h2><p>准备4台机器，至少2GB内存, 至少2个CPU。如果资源不够，可以用虚拟机，安装centos 7以上操作系统，本实验所用的版本号为：CentOS Linux release 7.6.1810 (Core)，机器规划如下：</p>
+<table>
+<thead>
+<tr>
+<th>name</th>
+<th>host</th>
+<th>ip</th>
+<th>user</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>master</td>
+<td>master, master.k8s.io</td>
+<td>192.168.233.129</td>
+<td>root</td>
+</tr>
+<tr>
+<td>slave1</td>
+<td>slave1, slave1.k8s.io</td>
+<td>192.168.233.131</td>
+<td>root</td>
+</tr>
+<tr>
+<td>slave2</td>
+<td>slave2, slave2.k8s.io</td>
+<td>192.168.233.132</td>
+<td>root</td>
+</tr>
+<tr>
+<td>slave3</td>
+<td>slave3, slave3.k8s.io</td>
+<td>192.168.233.133</td>
+<td>root</td>
+</tr>
+</tbody></table>
+<p>其中Pod网络地址分配如下：10.244.0.0/16，Service网络地址分配如下：10.96.0.0/12</p>
+<h2 id="机器配置（以master为例，其它的三台slave类似）"><a href="#机器配置（以master为例，其它的三台slave类似）" class="headerlink" title="机器配置（以master为例，其它的三台slave类似）"></a>机器配置（以master为例，其它的三台slave类似）</h2><h3 id="配置静态IP"><a href="#配置静态IP" class="headerlink" title="配置静态IP"></a>配置静态IP</h3><p>编辑文件/etc/sysconfig/network-scripts/ifcfg-ens33，</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">ONBOOT=yes</span><br><span class="line">BOOTPROTO=<span class="string">"static"</span></span><br><span class="line">IPADDR=192.168.233.129</span><br><span class="line">NETMASK=255.255.255.0</span><br><span class="line">GATEWAY=192.168.233.2</span><br><span class="line">PREFIX=24</span><br><span class="line">DNS1=192.168.233.2</span><br><span class="line">PEERDNS=no</span><br></pre></td></tr></table></figure>
+<h3 id="配置主机名"><a href="#配置主机名" class="headerlink" title="配置主机名"></a>配置主机名</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">hostnamectl <span class="built_in">set</span>-hostname master</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置hosts"><a href="#配置hosts" class="headerlink" title="配置hosts"></a>配置hosts</h3><p>/etc/hosts</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line">127.0.0.1   localhost localhost.localdomain localhost4 localhost4.localdomain4</span><br><span class="line">::1         localhost localhost.localdomain localhost6 localhost6.localdomain6</span><br><span class="line">192.168.233.129 master master.k8s.io</span><br><span class="line">192.168.233.131 slave1 slave1.k8s.io</span><br><span class="line">192.168.233.132 slave2 slave2.k8s.io</span><br><span class="line">192.168.233.133 slave3 slave3.k8s.io</span><br></pre></td></tr></table></figure>
+
+<h2 id="系统设置"><a href="#系统设置" class="headerlink" title="系统设置"></a>系统设置</h2><table>
+<thead>
+<tr>
+<th>systemctl命令</th>
+<th>说明</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>systemctl start</td>
+<td>启动服务</td>
+</tr>
+<tr>
+<td>systemctl enable</td>
+<td>设置服务开机启动</td>
+</tr>
+<tr>
+<td>systemctl status</td>
+<td>查看服务状态</td>
+</tr>
+</tbody></table>
+<h3 id="开启时钟同步"><a href="#开启时钟同步" class="headerlink" title="开启时钟同步"></a>开启时钟同步</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">systemctl start chronyd.service</span><br><span class="line">systemctl <span class="built_in">enable</span> chronyd.service</span><br><span class="line">systemctl status chronyd.service</span><br></pre></td></tr></table></figure>
+
+<h3 id="关闭防火墙"><a href="#关闭防火墙" class="headerlink" title="关闭防火墙"></a>关闭防火墙</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">systemctl stop firewalld.service</span><br><span class="line">systemctl <span class="built_in">disable</span> firewalld.service</span><br><span class="line">systemctl status firewalld.service</span><br></pre></td></tr></table></figure>
+<h3 id="关闭SELinux"><a href="#关闭SELinux" class="headerlink" title="关闭SELinux"></a>关闭SELinux</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">#Permissive</span></span><br><span class="line">setenforce 0</span><br><span class="line">getenforce</span><br><span class="line">sed -i <span class="string">'s/^SELINUX=enforcing$/SELINUX=permissive/'</span> /etc/selinux/config</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/SELinux.png" alt="SELinux"></p>
+<h3 id="关闭swap"><a href="#关闭swap" class="headerlink" title="关闭swap"></a>关闭swap</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">swapoff -a</span><br></pre></td></tr></table></figure>
+<p>编辑/etc/fstab，注释掉swap相关的行，行首前面加#<br><img src="https://download.beyondspider.com/img/k8s/fstab.png" alt="fstab"></p>
+<p>查询最终状态如下：</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">free -m</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/swap.png" alt="swap"></p>
+<p>最好重启一下机器，然后下一步安装docker</p>
+<h2 id="安装docker"><a href="#安装docker" class="headerlink" title="安装docker"></a>安装docker</h2><p><a href="https://docs.docker.com/engine/install/centos/" target="_blank" rel="noopener"><strong>docker install centos</strong></a></p>
+<h3 id="移除旧的docker"><a href="#移除旧的docker" class="headerlink" title="移除旧的docker"></a>移除旧的docker</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">yum remove docker \</span><br><span class="line">      docker-client \</span><br><span class="line">      docker-client-latest \</span><br><span class="line">      docker-common \</span><br><span class="line">      docker-latest \</span><br><span class="line">      docker-latest-logrotate \</span><br><span class="line">      docker-logrotate \</span><br><span class="line">      docker-engine</span><br></pre></td></tr></table></figure>
+
+<h3 id="设置docker-ce-repo"><a href="#设置docker-ce-repo" class="headerlink" title="设置docker-ce.repo"></a>设置docker-ce.repo</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">yum install -y yum-utils</span><br><span class="line"></span><br><span class="line">yum-config-manager \</span><br><span class="line">    --add-repo \</span><br><span class="line">    https://download.docker.com/linux/centos/docker-ce.repo</span><br></pre></td></tr></table></figure>
+
+
+<h3 id="安装docker-ce"><a href="#安装docker-ce" class="headerlink" title="安装docker-ce"></a>安装docker-ce</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum install docker-ce</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置docker"><a href="#配置docker" class="headerlink" title="配置docker"></a>配置docker</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line">mkdir /etc/docker</span><br><span class="line"></span><br><span class="line"><span class="comment"># Setup daemon.</span></span><br><span class="line">cat &gt; /etc/docker/daemon.json &lt;&lt;EOF</span><br><span class="line">&#123;</span><br><span class="line">  <span class="string">"exec-opts"</span>: [<span class="string">"native.cgroupdriver=systemd"</span>],</span><br><span class="line">  <span class="string">"log-driver"</span>: <span class="string">"json-file"</span>,</span><br><span class="line">  <span class="string">"log-opts"</span>: &#123;</span><br><span class="line">    <span class="string">"max-size"</span>: <span class="string">"100m"</span></span><br><span class="line">  &#125;,</span><br><span class="line">  <span class="string">"storage-driver"</span>: <span class="string">"overlay2"</span>,</span><br><span class="line">  <span class="string">"storage-opts"</span>: [</span><br><span class="line">    <span class="string">"overlay2.override_kernel_check=true"</span></span><br><span class="line">  ]</span><br><span class="line">&#125;</span><br><span class="line">EOF</span><br><span class="line"></span><br><span class="line">sed -i <span class="string">"13i ExecStartPost=/usr/sbin/iptables -P FORWARD ACCEPT"</span> /usr/lib/systemd/system/docker.service</span><br><span class="line"></span><br><span class="line"><span class="comment"># start Docker</span></span><br><span class="line">service network restart</span><br><span class="line">systemctl daemon-reload</span><br><span class="line">systemctl <span class="built_in">enable</span> docker</span><br><span class="line">systemctl start docker</span><br><span class="line">docker info</span><br></pre></td></tr></table></figure>
+
+<h2 id="安装kubernetes"><a href="#安装kubernetes" class="headerlink" title="安装kubernetes"></a>安装kubernetes</h2><p><a href="https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/" target="_blank" rel="noopener"><strong>kubernetes install kubeadm</strong></a></p>
+<h3 id="配置kubernetes-repo"><a href="#配置kubernetes-repo" class="headerlink" title="配置kubernetes.repo"></a>配置kubernetes.repo</h3><p>google源</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">cat &lt;&lt;EOF | sudo tee /etc/yum.repos.d/kubernetes.repo</span><br><span class="line">[kubernetes]</span><br><span class="line">name=Kubernetes</span><br><span class="line">baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\<span class="variable">$basearch</span></span><br><span class="line">enabled=1</span><br><span class="line">gpgcheck=1</span><br><span class="line">repo_gpgcheck=1</span><br><span class="line">gpgkey=https://packages.cloud.google.com/yum/doc/yum-key.gpg https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg</span><br><span class="line">exclude=kubelet kubeadm kubectl</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+
+<p>阿里镜像源</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">touch /etc/yum.repos.d/kubernetes.repo</span><br><span class="line">cat &gt; /etc/yum.repos.d/kubernetes.repo &lt;&lt;EOF</span><br><span class="line">[kubernetes]</span><br><span class="line">name=Kubernetes Repo</span><br><span class="line">enabled=1</span><br><span class="line">gpgcheck=1</span><br><span class="line">repo_gpgcheck=1</span><br><span class="line">baseurl=https://mirrors.aliyun.com/kubernetes/yum/repos/kubernetes-el7-x86_64/</span><br><span class="line">gpgkey=https://mirrors.aliyun.com/kubernetes/yum/doc/yum-key.gpg https://mirrors.aliyun.com/kubernetes/yum/doc/rpm-package-key.gpg</span><br><span class="line">EOF</span><br></pre></td></tr></table></figure>
+
+<h3 id="安装k8s"><a href="#安装k8s" class="headerlink" title="安装k8s"></a>安装k8s</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">yum -y install kubelet kubeadm kubectl</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置网络路由相关"><a href="#配置网络路由相关" class="headerlink" title="配置网络路由相关"></a>配置网络路由相关</h3><p>Make sure that the br_netfilter module is loaded. This can be done by running</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">lsmod | grep br_netfilter</span><br></pre></td></tr></table></figure>
+<p>To load it explicitly call</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">modprobe br_netfilter</span><br></pre></td></tr></table></figure>
+
+<p>配置k8s.conf</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">cat &lt;&lt;EOF | sudo tee /etc/sysctl.d/k8s.conf</span><br><span class="line">net.bridge.bridge-nf-call-iptables=1</span><br><span class="line">net.bridge.bridge-nf-call-ip6tables=1</span><br><span class="line">net.ipv4.ip_forward=1</span><br><span class="line">net.ipv4.tcp_tw_recycle=0</span><br><span class="line">vm.swappiness=0</span><br><span class="line">vm.overcommit_memory=1</span><br><span class="line">vm.panic_on_oom=0</span><br><span class="line">fs.inotify.max_user_watches=89100</span><br><span class="line">fs.file-max=52706963</span><br><span class="line">fs.nr_open=52706963</span><br><span class="line">net.ipv6.conf.all.disable_ipv6=1</span><br><span class="line">net.netfilter.nf_conntrack_max=2310720</span><br><span class="line">EOF</span><br><span class="line">sysctl --system</span><br></pre></td></tr></table></figure>
+
+<p>enable ip_forward</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">echo</span> 1 &gt; /proc/sys/net/ipv4/ip_forward</span><br></pre></td></tr></table></figure>
+
+<h3 id="配置kubelet-service"><a href="#配置kubelet-service" class="headerlink" title="配置kubelet.service"></a>配置kubelet.service</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">systemctl <span class="built_in">enable</span> kubelet.service</span><br></pre></td></tr></table></figure>
+
+<p>以上配置，master和slave是一样的过程。</p>
+<h2 id="下载k8s镜像"><a href="#下载k8s镜像" class="headerlink" title="下载k8s镜像"></a>下载k8s镜像</h2><p>由于k8s镜像默认下载不了，需要通过docker hub mirror进行下载</p>
+<p>获取所需镜像版本</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubeadm config images list</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/images.png" alt="images"></p>
+<p>master节点下载</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br></pre></td><td class="code"><pre><span class="line">docker pull mirrorgcrio/kube-apiserver:v1.18.6</span><br><span class="line">docker pull mirrorgcrio/kube-controller-manager:v1.18.6</span><br><span class="line">docker pull mirrorgcrio/kube-scheduler:v1.18.6</span><br><span class="line">docker pull mirrorgcrio/kube-proxy:v1.18.6</span><br><span class="line">docker pull mirrorgcrio/pause:3.2</span><br><span class="line">docker pull mirrorgcrio/etcd:3.4.3-0</span><br><span class="line">docker pull mirrorgcrio/coredns:1.6.7</span><br><span class="line"></span><br><span class="line">docker tag mirrorgcrio/kube-apiserver:v1.18.6 k8s.gcr.io/kube-apiserver:v1.18.6</span><br><span class="line">docker tag mirrorgcrio/kube-controller-manager:v1.18.6 k8s.gcr.io/kube-controller-manager:v1.18.6</span><br><span class="line">docker tag mirrorgcrio/kube-scheduler:v1.18.6 k8s.gcr.io/kube-scheduler:v1.18.6</span><br><span class="line">docker tag mirrorgcrio/kube-proxy:v1.18.6 k8s.gcr.io/kube-proxy:v1.18.6</span><br><span class="line">docker tag mirrorgcrio/pause:3.2 k8s.gcr.io/pause:3.2</span><br><span class="line">docker tag mirrorgcrio/etcd:3.4.3-0 k8s.gcr.io/etcd:3.4.3-0</span><br><span class="line">docker tag mirrorgcrio/coredns:1.6.7 k8s.gcr.io/coredns:1.6.7</span><br><span class="line"></span><br><span class="line">docker rmi mirrorgcrio/kube-apiserver:v1.18.6</span><br><span class="line">docker rmi mirrorgcrio/kube-controller-manager:v1.18.6</span><br><span class="line">docker rmi mirrorgcrio/kube-scheduler:v1.18.6</span><br><span class="line">docker rmi mirrorgcrio/kube-proxy:v1.18.6</span><br><span class="line">docker rmi mirrorgcrio/pause:3.2</span><br><span class="line">docker rmi mirrorgcrio/etcd:3.4.3-0</span><br><span class="line">docker rmi mirrorgcrio/coredns:1.6.7</span><br></pre></td></tr></table></figure>
+
+<p>master节点最终镜像列表</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">docker images | grep <span class="string">"k8s.gcr.io"</span></span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/k8s.gcr.io.png" alt="k8s.gcr.io"></p>
+<p>slave节点只需要下载kube-proxy:v1.18.6y和pause:3.2</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line">docker pull mirrorgcrio/kube-proxy:v1.18.6</span><br><span class="line">docker pull mirrorgcrio/pause:3.2</span><br><span class="line"></span><br><span class="line">docker tag mirrorgcrio/kube-proxy:v1.18.6 k8s.gcr.io/kube-proxy:v1.18.6</span><br><span class="line">docker tag mirrorgcrio/pause:3.2 k8s.gcr.io/pause:3.2</span><br><span class="line"></span><br><span class="line">docker rmi mirrorgcrio/kube-proxy:v1.18.6</span><br><span class="line">docker rmi mirrorgcrio/pause:3.2</span><br></pre></td></tr></table></figure>
+<p>请确保所有的机器镜像都提前下载好，否则后面k8s启动会失败。</p>
+<h2 id="启动k8s"><a href="#启动k8s" class="headerlink" title="启动k8s"></a>启动k8s</h2><h3 id="master"><a href="#master" class="headerlink" title="master"></a>master</h3><p>运行kubeadm init</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line">kubeadm init \</span><br><span class="line">    --kubernetes-version=v1.18.6 \</span><br><span class="line">    --pod-network-cidr=10.244.0.0/16 \</span><br><span class="line">    --service-cidr=10.96.0.0/12 \</span><br><span class="line">    --apiserver-advertise-address=0.0.0.0</span><br><span class="line"></span><br><span class="line">mkdir -p <span class="variable">$HOME</span>/.kube</span><br><span class="line">sudo cp -i /etc/kubernetes/admin.conf <span class="variable">$HOME</span>/.kube/config</span><br><span class="line">sudo chown $(id -u):$(id -g) <span class="variable">$HOME</span>/.kube/config</span><br><span class="line"></span><br><span class="line">kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml</span><br></pre></td></tr></table></figure>
+
+<h3 id="slave"><a href="#slave" class="headerlink" title="slave"></a>slave</h3><p>复制master节点/run/flannel/subnet.env到各个slave节点</p>
+<p>运行kubeadm join命令，xxx和yyy分别是master打印出来的日志里面的内容</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">kubeadm join 192.168.233.129:6443 --token xxx \</span><br><span class="line">     --discovery-token-ca-cert-hash yyy</span><br></pre></td></tr></table></figure>
+
+<h2 id="检查状态"><a href="#检查状态" class="headerlink" title="检查状态"></a>检查状态</h2><p>master节点执行</p>
+<h3 id="集群组件状态"><a href="#集群组件状态" class="headerlink" title="集群组件状态"></a>集群组件状态</h3><h4 id="命令"><a href="#命令" class="headerlink" title="命令"></a>命令</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl get cs</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/kubectlgetcs.png" alt="kubectlgetcs"></p>
+<h4 id="故障排查"><a href="#故障排查" class="headerlink" title="故障排查"></a>故障排查</h4><p>kubernetes:v1.18.6 get cs127.0.0.1 connection refused</p>
+<p>编辑文件/etc/kubernetes/manifests/kube-controller-manager.yaml和/etc/kubernetes/manifests/kube-scheduler.yaml<br>注释或删除掉 –port=0所在的行</p>
+<p>重启kubelet.service</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">systemctl restart kubelet.service</span><br></pre></td></tr></table></figure>
+
+<h3 id="集群节点状态"><a href="#集群节点状态" class="headerlink" title="集群节点状态"></a>集群节点状态</h3><h4 id="命令-1"><a href="#命令-1" class="headerlink" title="命令"></a>命令</h4><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl get nodes</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/kubectlgetnodes.png" alt="kubectlgetnodes"></p>
+<h2 id="Hello-World"><a href="#Hello-World" class="headerlink" title="Hello World"></a>Hello World</h2><p>master节点执行</p>
+<h3 id="创建service"><a href="#创建service" class="headerlink" title="创建service"></a>创建service</h3><p>创建文件 hello-service.xml</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Service</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello-service</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">hello-k8s-demo</span></span><br><span class="line">  <span class="attr">ports:</span></span><br><span class="line">    <span class="bullet">-</span> <span class="attr">protocol:</span> <span class="string">TCP</span></span><br><span class="line">      <span class="attr">port:</span> <span class="number">81</span></span><br><span class="line">      <span class="attr">targetPort:</span> <span class="number">80</span></span><br><span class="line">      <span class="attr">nodePort:</span> <span class="number">30001</span></span><br><span class="line">  <span class="attr">type:</span> <span class="string">NodePort</span></span><br></pre></td></tr></table></figure>
+
+<p>执行命令kubectl create，其中80是nginx端口，81是pod端口，30001是映射到外部的端口</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl create -f hello-service.xml</span><br></pre></td></tr></table></figure>
+
+<h3 id="创建deployment和pod"><a href="#创建deployment和pod" class="headerlink" title="创建deployment和pod"></a>创建deployment和pod</h3><p>创建文件hello-deployment.xml</p>
+<figure class="highlight yaml"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br></pre></td><td class="code"><pre><span class="line"><span class="attr">apiVersion:</span> <span class="string">apps/v1</span></span><br><span class="line"><span class="attr">kind:</span> <span class="string">Deployment</span></span><br><span class="line"><span class="attr">metadata:</span></span><br><span class="line">  <span class="attr">labels:</span></span><br><span class="line">    <span class="attr">app:</span> <span class="string">hello-k8s-demo</span></span><br><span class="line">  <span class="attr">name:</span> <span class="string">hello-deployment</span></span><br><span class="line"><span class="attr">spec:</span></span><br><span class="line">  <span class="attr">replicas:</span> <span class="number">2</span></span><br><span class="line">  <span class="attr">selector:</span></span><br><span class="line">    <span class="attr">matchLabels:</span></span><br><span class="line">      <span class="attr">app:</span> <span class="string">hello-k8s-demo</span></span><br><span class="line">  <span class="attr">template:</span></span><br><span class="line">    <span class="attr">metadata:</span></span><br><span class="line">      <span class="attr">labels:</span></span><br><span class="line">        <span class="attr">app:</span> <span class="string">hello-k8s-demo</span></span><br><span class="line">    <span class="attr">spec:</span></span><br><span class="line">      <span class="attr">containers:</span></span><br><span class="line">      <span class="bullet">-</span> <span class="attr">image:</span> <span class="string">docker.io/nginx:latest</span></span><br><span class="line">        <span class="attr">name:</span> <span class="string">hello-k8s</span></span><br><span class="line">        <span class="attr">ports:</span></span><br><span class="line">        <span class="bullet">-</span> <span class="attr">containerPort:</span> <span class="number">80</span></span><br></pre></td></tr></table></figure>
+
+<p>执行命令kubectl create, pod数量为2，会随机选择2个slave节点运行nginx docker</p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl create -f hello-deployment.xml</span><br></pre></td></tr></table></figure>
+
+<h3 id="查询状态"><a href="#查询状态" class="headerlink" title="查询状态"></a>查询状态</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">kubectl get svc,pod,deployment -o wide</span><br></pre></td></tr></table></figure>
+<p><img src="https://download.beyondspider.com/img/k8s/svcpoddeployment.png" alt="svcpoddeployment"></p>
+<h3 id="验证nginx"><a href="#验证nginx" class="headerlink" title="验证nginx"></a>验证nginx</h3><p>如上图hello-service的IP为10.101.171.221, 内部端口为81，外部IP为：192.168.233.129（master IP），端口为30001</p>
+<p>在master，slave，节点内部访问<a href="http://10.101.171.221:81进行验证">http://10.101.171.221:81进行验证</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://10.101.171.221:81</span><br></pre></td></tr></table></figure>
+
+<p>看到如下内容，说明成功</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">title</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span></span><br><span class="line">    body &#123;</span><br><span class="line">        width: 35em;</span><br><span class="line">        margin: 0 auto;</span><br><span class="line">        font-family: Tahoma, Verdana, Arial, sans-serif;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>If you see this page, the nginx web server is successfully installed and</span><br><span class="line">working. Further configuration is required.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>For online documentation and support please refer to</span><br><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"http://nginx.org/"</span>&gt;</span>nginx.org<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;<span class="name">br</span>/&gt;</span></span><br><span class="line">Commercial support is available at</span><br><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"http://nginx.com/"</span>&gt;</span>nginx.com<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span><span class="tag">&lt;<span class="name">em</span>&gt;</span>Thank you for using nginx.<span class="tag">&lt;/<span class="name">em</span>&gt;</span><span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<p>在k8s外部访问<a href="http://192.168.233.129:30001进行验证">http://192.168.233.129:30001进行验证</a></p>
+<figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">curl http://192.168.233.129:30001</span><br></pre></td></tr></table></figure>
+<p>结果相同</p>
+<figure class="highlight html"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br></pre></td><td class="code"><pre><span class="line"><span class="meta">&lt;!DOCTYPE <span class="meta-keyword">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">html</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">title</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">title</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">style</span>&gt;</span></span><br><span class="line">    body &#123;</span><br><span class="line">        width: 35em;</span><br><span class="line">        margin: 0 auto;</span><br><span class="line">        font-family: Tahoma, Verdana, Arial, sans-serif;</span><br><span class="line">    &#125;</span><br><span class="line"><span class="tag">&lt;/<span class="name">style</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">head</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">h1</span>&gt;</span>Welcome to nginx!<span class="tag">&lt;/<span class="name">h1</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>If you see this page, the nginx web server is successfully installed and</span><br><span class="line">working. Further configuration is required.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span>For online documentation and support please refer to</span><br><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"http://nginx.org/"</span>&gt;</span>nginx.org<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;<span class="name">br</span>/&gt;</span></span><br><span class="line">Commercial support is available at</span><br><span class="line"><span class="tag">&lt;<span class="name">a</span> <span class="attr">href</span>=<span class="string">"http://nginx.com/"</span>&gt;</span>nginx.com<span class="tag">&lt;/<span class="name">a</span>&gt;</span>.<span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"></span><br><span class="line"><span class="tag">&lt;<span class="name">p</span>&gt;</span><span class="tag">&lt;<span class="name">em</span>&gt;</span>Thank you for using nginx.<span class="tag">&lt;/<span class="name">em</span>&gt;</span><span class="tag">&lt;/<span class="name">p</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">body</span>&gt;</span></span><br><span class="line"><span class="tag">&lt;/<span class="name">html</span>&gt;</span></span><br></pre></td></tr></table></figure>
+
+<h3 id="小结"><a href="#小结" class="headerlink" title="小结"></a>小结</h3><p>我们通过虚拟机可以配置k8s集群，其中一台master，3台slave，k8s启动之后就可以运行nginx hello world例子。</p>
+<p><img src="https://download.beyondspider.com/img/weixin/bottom.gif" alt="bottom"></p>
+
+    </div>
+
+    
+    
+    
+
+      <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/docker/" rel="tag"># docker</a>
+              <a href="/tags/k8s/" rel="tag"># k8s</a>
+              <a href="/tags/kubernetes/" rel="tag"># kubernetes</a>
+          </div>
+
+        
+
+
+        
+    <div class="post-nav">
+      <div class="post-nav-item">
+    <a href="/2020/03/20/docker-image/" rel="prev" title="（二）Docker从入门到精通—容器镜像仓库">
+      <i class="fa fa-chevron-left"></i> （二）Docker从入门到精通—容器镜像仓库
+    </a></div>
+      <div class="post-nav-item">
+    <a href="/2020/08/24/k8s-dashboard/" rel="next" title="（二）kubernetes（k8s）dashboard">
+      （二）kubernetes（k8s）dashboard <i class="fa fa-chevron-right"></i>
+    </a></div>
+    </div>
+      </footer>
+    
+  </article>
+  
+  
+  
+
+  </div>
+
+
+          </div>
+          
+    <div class="comments" id="valine-comments"></div>
+
+<script>
+  window.addEventListener('tabs:register', () => {
+    let { activeClass } = CONFIG.comments;
+    if (CONFIG.comments.storage) {
+      activeClass = localStorage.getItem('comments_active') || activeClass;
+    }
+    if (activeClass) {
+      let activeTab = document.querySelector(`a[href="#comment-${activeClass}"]`);
+      if (activeTab) {
+        activeTab.click();
+      }
+    }
+  });
+  if (CONFIG.comments.storage) {
+    window.addEventListener('tabs:click', event => {
+      if (!event.target.matches('.tabs-comment .tab-content .tab-pane')) return;
+      let commentClass = event.target.classList[1];
+      localStorage.setItem('comments_active', commentClass);
+    });
+  }
+</script>
+
+        </div>
+          
+  
+  <div class="toggle sidebar-toggle">
+    <span class="toggle-line toggle-line-first"></span>
+    <span class="toggle-line toggle-line-middle"></span>
+    <span class="toggle-line toggle-line-last"></span>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-inner">
+
+      <ul class="sidebar-nav motion-element">
+        <li class="sidebar-nav-toc">
+          文章目录
+        </li>
+        <li class="sidebar-nav-overview">
+          站点概览
+        </li>
+      </ul>
+
+      <!--noindex-->
+      <div class="post-toc-wrap sidebar-panel">
+          <div class="post-toc motion-element"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#机器准备"><span class="nav-number">1.</span> <span class="nav-text">机器准备</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#机器配置（以master为例，其它的三台slave类似）"><span class="nav-number">2.</span> <span class="nav-text">机器配置（以master为例，其它的三台slave类似）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#配置静态IP"><span class="nav-number">2.1.</span> <span class="nav-text">配置静态IP</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#配置主机名"><span class="nav-number">2.2.</span> <span class="nav-text">配置主机名</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#配置hosts"><span class="nav-number">2.3.</span> <span class="nav-text">配置hosts</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#系统设置"><span class="nav-number">3.</span> <span class="nav-text">系统设置</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#开启时钟同步"><span class="nav-number">3.1.</span> <span class="nav-text">开启时钟同步</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#关闭防火墙"><span class="nav-number">3.2.</span> <span class="nav-text">关闭防火墙</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#关闭SELinux"><span class="nav-number">3.3.</span> <span class="nav-text">关闭SELinux</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#关闭swap"><span class="nav-number">3.4.</span> <span class="nav-text">关闭swap</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安装docker"><span class="nav-number">4.</span> <span class="nav-text">安装docker</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#移除旧的docker"><span class="nav-number">4.1.</span> <span class="nav-text">移除旧的docker</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#设置docker-ce-repo"><span class="nav-number">4.2.</span> <span class="nav-text">设置docker-ce.repo</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装docker-ce"><span class="nav-number">4.3.</span> <span class="nav-text">安装docker-ce</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#配置docker"><span class="nav-number">4.4.</span> <span class="nav-text">配置docker</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#安装kubernetes"><span class="nav-number">5.</span> <span class="nav-text">安装kubernetes</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#配置kubernetes-repo"><span class="nav-number">5.1.</span> <span class="nav-text">配置kubernetes.repo</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#安装k8s"><span class="nav-number">5.2.</span> <span class="nav-text">安装k8s</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#配置网络路由相关"><span class="nav-number">5.3.</span> <span class="nav-text">配置网络路由相关</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#配置kubelet-service"><span class="nav-number">5.4.</span> <span class="nav-text">配置kubelet.service</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#下载k8s镜像"><span class="nav-number">6.</span> <span class="nav-text">下载k8s镜像</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#启动k8s"><span class="nav-number">7.</span> <span class="nav-text">启动k8s</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#master"><span class="nav-number">7.1.</span> <span class="nav-text">master</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#slave"><span class="nav-number">7.2.</span> <span class="nav-text">slave</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#检查状态"><span class="nav-number">8.</span> <span class="nav-text">检查状态</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#集群组件状态"><span class="nav-number">8.1.</span> <span class="nav-text">集群组件状态</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#命令"><span class="nav-number">8.1.1.</span> <span class="nav-text">命令</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#故障排查"><span class="nav-number">8.1.2.</span> <span class="nav-text">故障排查</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#集群节点状态"><span class="nav-number">8.2.</span> <span class="nav-text">集群节点状态</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#命令-1"><span class="nav-number">8.2.1.</span> <span class="nav-text">命令</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Hello-World"><span class="nav-number">9.</span> <span class="nav-text">Hello World</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#创建service"><span class="nav-number">9.1.</span> <span class="nav-text">创建service</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#创建deployment和pod"><span class="nav-number">9.2.</span> <span class="nav-text">创建deployment和pod</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#查询状态"><span class="nav-number">9.3.</span> <span class="nav-text">查询状态</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#验证nginx"><span class="nav-number">9.4.</span> <span class="nav-text">验证nginx</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#小结"><span class="nav-number">9.5.</span> <span class="nav-text">小结</span></a></li></ol></li></ol></div>
+      </div>
+      <!--/noindex-->
+
+      <div class="site-overview-wrap sidebar-panel">
+        <div class="site-author motion-element" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="beyondspider"
+      src="/images/beyondspider.png">
+  <p class="site-author-name" itemprop="name">beyondspider</p>
+  <div class="site-description" itemprop="description">beyondspider,超越爬虫</div>
+</div>
+<div class="site-state-wrap motion-element">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+          <a href="/archives/">
+        
+          <span class="site-state-item-count">9</span>
+          <span class="site-state-item-name">日志</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+            <a href="/categories/">
+          
+        <span class="site-state-item-count">4</span>
+        <span class="site-state-item-name">分类</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+            <a href="/tags/">
+          
+        <span class="site-state-item-count">7</span>
+        <span class="site-state-item-name">标签</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author motion-element">
+      <span class="links-of-author-item">
+        <a href="https://github.com/beyondspider" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;beyondspider" rel="noopener" target="_blank"><i class="fa fa-fw fa-github"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:admin@beyondspider.com" title="E-Mail → mailto:admin@beyondspider.com" rel="noopener" target="_blank"><i class="fa fa-fw fa-envelope"></i>E-Mail</a>
+      </span>
+  </div>
+
+
+  <div class="links-of-blogroll motion-element">
+    <div class="links-of-blogroll-title">
+      <i class="fa fa-fw fa-link"></i>
+      Github Pages Mirror
+    </div>
+    <ul class="links-of-blogroll-list">
+        <li class="links-of-blogroll-item">
+          <a href="https://beyondspider.github.io/" title="https:&#x2F;&#x2F;beyondspider.github.io" rel="noopener" target="_blank">beyondspider.github.io</a>
+        </li>
+    </ul>
+  </div>
+
+      </div>
+
+    </div>
+  </aside>
+  <div id="sidebar-dimmer"></div>
+
+
+      </div>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-inner">
+        
+  <div class="beian"><a href="http://www.beian.miit.gov.cn/" rel="noopener" target="_blank">苏ICP备15043861号-1 </a>
+      <img src="/images/gongan.png" style="display: inline-block;"><a href="http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=32011402010652" rel="noopener" target="_blank">苏公网安备 32011402010652号 </a>
+  </div>
+
+<div class="copyright">
+  
+  &copy; 
+  <span itemprop="copyrightYear">2020</span>
+  <span class="with-love">
+    <i class="fa fa-user"></i>
+  </span>
+  <span class="author" itemprop="copyrightHolder">beyondspider</span>
+</div>
+  <div class="powered-by">由 <a href="https://hexo.io/" class="theme-link" rel="noopener" target="_blank">Hexo</a> 强力驱动 v4.2.1
+  </div>
+  <span class="post-meta-divider">|</span>
+  <div class="theme-info">主题 – <a href="https://theme-next.org/" class="theme-link" rel="noopener" target="_blank">NexT.Gemini</a> v7.7.2
+  </div>
+
+        
+
+
+
+
+
+
+
+
+      </div>
+    </footer>
+  </div>
+
+  
+  <script src="/lib/anime.min.js"></script>
+
+<script src="/js/utils.js"></script>
+
+
+<script src="/js/schemes/pisces.js"></script>
+
+
+<script src="/js/next-boot.js"></script>
+
+
+
+
+  
+  <script>
+    (function(){
+      var bp = document.createElement('script');
+      var curProtocol = window.location.protocol.split(':')[0];
+      bp.src = (curProtocol === 'https') ? 'https://zz.bdstatic.com/linksubmit/push.js' : 'http://push.zhanzhang.baidu.com/push.js';
+      var s = document.getElementsByTagName("script")[0];
+      s.parentNode.insertBefore(bp, s);
+    })();
+  </script>
+
+
+
+
+  
+<script src="/js/local-search.js"></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+  
+
+
+<script>
+NexT.utils.loadComments(document.querySelector('#valine-comments'), () => {
+  NexT.utils.getScript('//unpkg.com/valine/dist/Valine.min.js', () => {
+    var GUEST = ['nick', 'mail', 'link'];
+    var guest = 'nick,mail,link';
+    guest = guest.split(',').filter(item => {
+      return GUEST.includes(item);
+    });
+    new Valine({
+      el         : '#valine-comments',
+      verify     : true,
+      notify     : false,
+      appId      : '501MkxlpFuaxMsUtEGfD6zaU-gzGzoHsz',
+      appKey     : '8oPxidzxOLHiXdamIycgufGl',
+      placeholder: "Just go go",
+      avatar     : 'mm',
+      meta       : guest,
+      pageSize   : '10' || 10,
+      visitor    : true,
+      lang       : '' || 'zh-cn',
+      path       : location.pathname,
+      recordIP   : true,
+      serverURLs : ''
+    });
+  }, window.Valine);
+});
+</script>
+
+</body>
+</html>
